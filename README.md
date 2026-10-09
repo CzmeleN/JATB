@@ -31,6 +31,7 @@ Just Another Trackmania Bot - a project for Game Botting UWr Class
     - dxvk2071 (see below)
 
 2. prepare the game directory, ~/tmnf
+
     **MAKE SURE TO STAY IN THE SAME SHELL INSTANCE AFTER SOURCING THE ENV**
 
     - check the downloaded Wine checksum
@@ -79,6 +80,7 @@ Just Another Trackmania Bot - a project for Game Botting UWr Class
     ```
 
 3. prepare TMInterface
+
     **MAKE SURE TO HAVE THE ENV SOURCED**
 
     - unzip the modloader
