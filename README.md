@@ -110,3 +110,8 @@ Just Another Trackmania Bot - a project for Game Botting UWr Class
     ```
     DXVK_HUD=version,fps wine ~/tmnf/TMLoader/TMLoader.exe run TmForever "default"
     ```
+
+4. FAQ / Troubleshooting
+
+    Q: there's no lighting in my game
+    A: you're probably missing d3dx9 dlls, try running ```winetricks -q d3dx9``` with sourced env
