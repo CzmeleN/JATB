@@ -154,6 +154,11 @@ Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
     wine ~/tmnf/TMLoader/TMLoader.exe run TmForever "default" /configstring="set jatb_port 8450"
     ```
 
+    - check the connection with CommManager
+    ```
+    py JATB/jatb/trackmania_interface/test.py
+    ```
+
 5. FAQ / Troubleshooting
 
     Q: there's no lighting in my game
