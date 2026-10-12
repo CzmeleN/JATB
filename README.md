@@ -44,7 +44,7 @@ Just Another Trackmania Bot - a project for Game Botting UWr Class
     ```
     - load the exports (also creates prefix folder)
     ```
-    source JATB/env.sh
+    source JATB/utils/env.sh
     ```
     - check the Wine installation
     ```
