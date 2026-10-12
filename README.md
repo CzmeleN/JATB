@@ -20,7 +20,35 @@ Just Another Trackmania Bot - a project for Game Botting UWr Class
 
 - TODO
 
-## Setup
+## Repo Setup
+
+The project uses Poetry 2.x (2.1 or newer) and requires **Python 3.11 or 3.12**.
+The virtual environment is created in `./.venv` (see `poetry.toml`) and is not committed.
+
+### Option A: you already have Python 3.11/3.12
+
+```
+poetry env use 3.12        # or 3.11, or a full path to the interpreter, e.g. ~/miniconda3/envs/ml/bin/python
+poetry install
+```
+
+### Option B: you don't have a suitable Python
+
+Install one first, then proceed as in option A. You can do it with conda:
+  ```
+  conda create -n py312 python=3.12 -y
+  poetry env use $(conda run -n py312 which python)
+  poetry install
+  ```
+
+Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
+
+### Using the environment
+
+- activate the environment with: `eval $(poetry env activate)`
+- run the project without activating: `poetry run jatb` (same as `poetry run python -m jatb`; the entry point is `main()` in `jatb/__main__.py`)
+
+## Trackmaina Setup
 
 1. get the software:
 
