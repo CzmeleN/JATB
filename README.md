@@ -139,7 +139,22 @@ Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
     DXVK_HUD=version,fps wine ~/tmnf/TMLoader/TMLoader.exe run TmForever "default"
     ```
 
-4. FAQ / Troubleshooting
+4. now you're ready to cook
+
+    - add the JATB Link plugin
+    ```
+    cd "$WINEPREFIX/drive_c/users/$USER/Documents/TMInterface/Plugins/"
+    ln -s ~/.../JATB/utils/jatb_link.as jatb_link.as
+    # or copy it - you will have to update it by yourself
+    ```
+
+    - launch trackmania
+    ```
+    cd "$WINEPREFIX/drive_c/Program Files (x86)/TmNationsForever"
+    wine ~/tmnf/TMLoader/TMLoader.exe run TmForever "default" /configstring="set jatb_port 8450"
+    ```
+
+5. FAQ / Troubleshooting
 
     Q: there's no lighting in my game
     A: you're probably missing d3dx9 dlls, try running ```winetricks -q d3dx9``` with sourced env
