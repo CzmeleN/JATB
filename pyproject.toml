@@ -1,0 +1,21 @@
+[project]
+name = "jatb"
+version = "0.1.0"
+description = "Just Another Trackmania Bot - a project for Game Botting UWr Class"
+authors = [
+    {name = "Your Name",email = "you@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+]
+
+[project.scripts]
+jatb = "jatb.__main__:main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [{ include = "jatb" }]
