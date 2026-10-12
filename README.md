@@ -22,7 +22,7 @@ Just Another Trackmania Bot - a project for Game Botting UWr Class
 
 ## Repo Setup
 
-The project uses Poetry and requires **Python 3.11 or 3.12**.
+The project uses Poetry 2.x (2.1 or newer) and requires **Python 3.11 or 3.12**.
 The virtual environment is created in `./.venv` (see `poetry.toml`) and is not committed.
 
 ### Option A: you already have Python 3.11/3.12

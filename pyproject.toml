@@ -3,7 +3,9 @@ name = "jatb"
 version = "0.1.0"
 description = "Just Another Trackmania Bot - a project for Game Botting UWr Class"
 authors = [
-    {name = "Your Name",email = "you@example.com"}
+    {name = "Jakub Iliński"},
+    {name = "Jan Mączyński"},
+    {name = "Stanisław Burdzicki"}
 ]
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
