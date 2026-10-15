@@ -32,7 +32,7 @@ class CommManager:
 
             buff += chunk
 
-        return bytes(buff);
+        return bytes(buff)
 
     def connect(self) -> None:
         while True:
