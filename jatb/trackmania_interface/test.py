@@ -4,4 +4,5 @@ c = CommManager(8450)
 c.connect()
 
 while True:
-    c.recv_frame()
+    frame = c.recv_frame()
+    print(f"Time since race start: {frame.raceTime} ms")
