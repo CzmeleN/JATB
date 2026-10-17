@@ -4,3 +4,5 @@ export WINE="$TMNF_ROOT/wine-11.0-amd64-wow64/bin/wine"
 mkdir -p "$TMNF_ROOT/prefix"
 export WINEPREFIX="$TMNF_ROOT/prefix"
 export WINEDEBUG=-all
+export TMLOADER="$TMNF_ROOT/TMLoader/TMLoader.exe"
+export TMNF_GAME_DIR="$WINEPREFIX/drive_c/Program Files (x86)/TmNationsForever"

@@ -34,21 +34,29 @@ class CommManager:
 
         return bytes(buff)
 
+    # single attempt, doesn't wait for the game
+    def try_connect(self) -> bool:
+        try:
+            self.sock = socket.create_connection((self.addr, self.port), timeout=2)
+        except OSError:
+            return False
+
+        self.sock.settimeout(None)
+
+        print(f"JATB instance connected to {self.addr}:{self.port}")
+
+        return True
+
     def connect(self) -> None:
-        while True:
-            try:
-                self.sock = socket.create_connection((self.addr, self.port), timeout=2)
-                self.sock.settimeout(None)
+        while not self.try_connect():
+            print(f"waiting for TMNF on port {self.port}", file=sys.stderr)
 
-                print(f"JATB instance connected to {self.addr}:{self.port}")
+            time.sleep(1)
 
-                return
-            except OSError:
-                print(f"waiting for TMNF on port {self.port}", file=sys.stderr)
-
-                time.sleep(1)
+    # lets select() wait on a CommManager directly
+    def fileno(self) -> int:
+        return self.sock.fileno()
 
     # TODO: return a Python-native type for the Bot
-    def recv_frame(self) -> None:
-        Frame = RecvFrame.from_buffer_copy(self.__recv_n(C.sizeof(RecvFrame)))
-        print(f"Time since race start: {Frame.raceTime} ms")
+    def recv_frame(self) -> RecvFrame:
+        return RecvFrame.from_buffer_copy(self.__recv_n(C.sizeof(RecvFrame)))
