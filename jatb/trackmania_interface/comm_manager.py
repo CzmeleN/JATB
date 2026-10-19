@@ -54,10 +54,10 @@ class CommManager:
         print(f"Time since race start: {Frame.raceTime} ms")
     
     #TODO 
-    def send_accelerate(self, val: float) -> None:
+    def send_gas(self, val: int) -> None:
         raise NotImplemented
     
     #TODO 
-    def send_steer(self, val: float) -> None:
+    def send_steer(self, val: int) -> None:
         raise NotImplemented
     
