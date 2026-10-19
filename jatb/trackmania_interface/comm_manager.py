@@ -52,3 +52,12 @@ class CommManager:
     def recv_frame(self) -> None:
         Frame = RecvFrame.from_buffer_copy(self.__recv_n(C.sizeof(RecvFrame)))
         print(f"Time since race start: {Frame.raceTime} ms")
+    
+    #TODO 
+    def send_accelerate(self, val: float) -> None:
+        raise NotImplemented
+    
+    #TODO 
+    def send_steer(self, val: float) -> None:
+        raise NotImplemented
+    
