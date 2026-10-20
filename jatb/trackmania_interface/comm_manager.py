@@ -69,7 +69,7 @@ class CommManager:
     print_cd: int
     print_counter: int
 
-    def __init__(self, port: int, addr: str = "127.0.0.1", print_cd: int = 50):
+    def __init__(self, port: int, addr: str, print_cd: int):
         self.port = port
         self.addr = addr
         self.print_cd = print_cd
