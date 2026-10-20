@@ -147,7 +147,7 @@ class CommManager:
     def send_execute(self, command: str) -> None:
         self._send(MsgType.EXECUTE, command.encode("ascii"))
 
-    def send_sel_lvl(self, map_path: str) -> None:
+    def send_select_lvl(self, map_path: str) -> None:
         self.send_execute(f'map "{map_path}"')
 
     def send_restart(self) -> None:

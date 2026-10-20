@@ -36,7 +36,7 @@ def main() -> None:
     comm.connect()
     comm.setup()
     threading.Thread(target=reader, args=(comm,), daemon=True).start()
-    comm.send_sel_lvl(MAP)
+    comm.send_select_lvl(MAP)
 
     actions = {
         "1": lambda: comm.send_gas(ANALOG_MAX),
