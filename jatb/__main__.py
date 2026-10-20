@@ -16,7 +16,7 @@ def main() -> None:
                       "jakaś nazwa mapy")
     
     game.launch()
-    while not game.is_done:
+    while not game.is_finished:
         observations: list[float] = game.get_observations()
         policy_output: list[float] = policy.predict(observations)
         step_result: StepResult = game.make_step(policy_output)

@@ -1,8 +1,5 @@
 from dataclasses import dataclass
-from jatb.io.input_handler.Iinput_handler import IInputHandler
-from jatb.io.output_handler.Ioutput_handler import IOutputHandler
 from jatb.game.reward_function.IReward_function import IRewardFunction
-from jatb.trackmania_interface.comm_manager import CommManager
 from jatb.trackmania_interface.game_state import GameState
 from jatb.io import IOutputHandler, IInputHandler, Io
 
@@ -12,7 +9,7 @@ SIMULATION_ONE_STEP_TIME_MS: int = 50
 class StepResult: 
     step_observation: list[float]
     reward: float
-    done: bool
+    is_finished: bool
 
 class Game:
     def __init__(self,
@@ -30,7 +27,7 @@ class Game:
         self.max_race_time_ms = max_race_time_ms
         self.current_race_time_ms: int = 0
         self.prev_game_state: GameState = GameState()
-        self.is_done: bool = False
+        self.is_finished: bool = False
         self.io = Io(input_handler, output_handler, port, addr, print_cd)
         
     def get_observations(self) -> list[float]:
@@ -47,12 +44,12 @@ class Game:
         
         last_step_observation: list[float] = self.io.get_input(new_state)
         reward = self.reward_function.compute(self.prev_game_state, new_state)
-        self.is_done = new_state.get_terminated() or self.current_race_time_ms > self.max_race_time_ms
+        self.is_finished = new_state.is_finished() or self.current_race_time_ms > self.max_race_time_ms
         
         self.prev_game_state = new_state 
         self.current_race_time_ms += SIMULATION_ONE_STEP_TIME_MS
         
-        return StepResult(last_step_observation, reward, terminated=self.is_done)
+        return StepResult(last_step_observation, reward, self.is_finished)
          
     def launch(self) -> None:
         """ you need to invoke the function before using the class"""

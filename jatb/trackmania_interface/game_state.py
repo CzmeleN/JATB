@@ -18,7 +18,7 @@ class GameState:
         * distance between next corner and next next corner: [?, ?]
         * next corner direction: [?, ?]
         * next next corner direction: [?, ?]
-        * terminated - bool 
+        * is_finished - bool 
     """
     
     def __init__(self):
@@ -38,19 +38,19 @@ class GameState:
         self.__distance_between_next_corners: float = 0.0
         self.__next_corner_direction: float = 0.0
         self.__next_next_corner_direction: float = 0.0
-        self.__terminated: bool = False
+        self.__is_finished: bool = False
 
     @staticmethod
     def _validate_vector3(value: tuple[float, float, float]) -> None:
         if not isinstance(value, tuple) or len(value) != 3:
             raise ValueError("Expected a tuple containing exactly 3 values")
         
-    #terminated
+    # is_finished
     def set_terminated(self, value: bool) -> None:
-        self.__terminated = value
+        self.__is_finished = value
 
     def get_terminated(self) -> bool:
-        return self.__terminated
+        return self.__is_finished
     
     # velocity 
     @staticmethod  
