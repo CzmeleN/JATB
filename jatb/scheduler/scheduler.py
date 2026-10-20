@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from jatb.bot.policy import IPolicy
+from jatb.policy import IPolicy
 
 
 @dataclass
@@ -11,7 +11,6 @@ class EpisodeResult:
     fitness: float
     total_reward: float
     steps: int
-
 
 @dataclass
 class Transition:

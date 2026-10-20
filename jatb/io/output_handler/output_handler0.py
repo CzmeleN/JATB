@@ -1,4 +1,4 @@
-from jatb.bot.output_handler.Ioutput_handler import IOutputHandler
+from jatb.io.output_handler.Ioutput_handler import IOutputHandler
 from jatb.trackmania_interface.comm_manager import CommManager
 
 class OutputHandler0(IOutputHandler):

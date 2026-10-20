@@ -1,6 +1,5 @@
-from jatb.bot.input_handler.Iinput_handler import IInputHandler
+from jatb.io.input_handler.Iinput_handler import IInputHandler
 from jatb.trackmania_interface import GameState
-
 
 class InputHandler0(IInputHandler):
     """
