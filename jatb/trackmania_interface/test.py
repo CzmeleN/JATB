@@ -1,6 +1,6 @@
 """Very short manual test for the JATB link / CommManager
 
-Usage: py test.py [port] [map - unsupported yet]
+Usage: py test.py [port] [map]
 
 Commands:
     1 full gas
@@ -17,8 +17,8 @@ import threading
 from comm_manager import CommManager, ANALOG_MAX
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8450
-# TODO: Make the map selection work
-# MAP = sys.argv[2] if len(sys.argv) > 2 else "A01-Race.Challenge.Gbx"
+# Relative to Documents/TmForever/Tracks/Challenges, see README
+MAP = sys.argv[2] if len(sys.argv) > 2 else "White/A01-Race.Challenge.Gbx"
 
 alive = True
 
@@ -34,9 +34,9 @@ def reader(comm: CommManager) -> None:
 def main() -> None:
     comm = CommManager(PORT, print_cd=200)
     comm.connect()
+    comm.setup()
     threading.Thread(target=reader, args=(comm,), daemon=True).start()
-    # TODO: Make the map selection work
-    # comm.send_sel_lvl(MAP)
+    comm.send_select_lvl(MAP)
 
     actions = {
         "1": lambda: comm.send_gas(ANALOG_MAX),

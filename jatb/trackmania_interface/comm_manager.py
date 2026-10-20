@@ -51,6 +51,13 @@ assert C.sizeof(AnalogPayload) == 4
 ANALOG_MAX = 65536
 PAYLOAD_MAX = 0xFFFF
 
+GAME_SETTINGS = (
+    "set unfocused_fps_limit false",
+    "set skip_map_load_screens true",
+    "set disable_forced_camera true",
+    "set autorewind false",
+)
+
 # TODO: add a correct return type
 def _get_orientations(f: RecvFrame):
     R = np.stack([np.array([r.x, r.y, r.z], dtype=np.float32) for r in f.rotation])
@@ -109,6 +116,10 @@ class CommManager:
 
                 time.sleep(1)
 
+    def setup(self) -> None:
+        for cmd in GAME_SETTINGS:
+            self.send_execute(cmd)
+
     # TODO: return a Python-native type for the Bot
     def recv_frame(self) -> None:
         frame = RecvFrame.from_buffer_copy(self._recv_n(C.sizeof(RecvFrame)))
@@ -136,7 +147,7 @@ class CommManager:
     def send_execute(self, command: str) -> None:
         self._send(MsgType.EXECUTE, command.encode("ascii"))
 
-    def send_sel_lvl(self, map_path: str) -> None:
+    def send_select_lvl(self, map_path: str) -> None:
         self.send_execute(f'map "{map_path}"')
 
     def send_restart(self) -> None:
