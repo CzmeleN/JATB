@@ -1,7 +1,7 @@
 from jatb.game import Game, StepResult
 from jatb.game.reward_function import IRewardFunction, DummyRewardFunction
-from jatb.game.input_handler import IInputHandler, InputHandler0
-from jatb.game.output_handler import IOutputHandler, OutputHandler0
+from jatb.io.input_handler import IInputHandler, InputHandler0
+from jatb.io.output_handler import IOutputHandler, OutputHandler0
 from jatb.policy import IPolicy, RandomPolicy
 
 def main() -> None:

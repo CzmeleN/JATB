@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from jatb.game.input_handler.Iinput_handler import IInputHandler
-from jatb.game.output_handler.Ioutput_handler import IOutputHandler
+from jatb.io.input_handler.Iinput_handler import IInputHandler
+from jatb.io.output_handler.Ioutput_handler import IOutputHandler
 from jatb.game.reward_function.IReward_function import IRewardFunction
 from jatb.trackmania_interface.comm_manager import CommManager
 from jatb.trackmania_interface.game_state import GameState
+from jatb.io import IOutputHandler, IInputHandler, Io
 
 SIMULATION_ONE_STEP_TIME_MS: int = 50
 
@@ -25,28 +26,26 @@ class Game:
                 print_cd: int = 50) -> None:
         
         self.reward_function = reward_function
-        self.input_handler = input_handler
-        self.output_handler = output_handler
         self.map_name = map_name
         self.max_race_time_ms = max_race_time_ms
         self.current_race_time_ms: int = 0
-        self.comm_manager: CommManager = CommManager(port, addr, print_cd)
         self.prev_game_state: GameState = GameState()
         self.is_done: bool = False
+        self.io = Io(input_handler, output_handler, port, addr, print_cd)
         
     def get_observations(self) -> list[float]:
-        return self.input_handler.get_input(self.prev_game_state)
+        return self.io.get_input(self.prev_game_state)
         
     def reset(self) -> None:
-        self.comm_manager.send_restart()
+        self.io.restart()
         # self._prev_game_state = jakaś_klasa_do_łączenia_inputu_z_comm_manager_i_danych_o_trasie_z_gry.get_state()
         
     def make_step(self, policy_output: list[float]) -> StepResult:
-        self.output_handler.send_output_to_the_game(policy_output, self.comm_manager)
+        self.io.send_output_to_the_game(policy_output)
         
         # new_state: GameState = jakaś_klasa_do_łączenia_inputu_z_comm_manager_i_danych_o_trasie_z_gry.get_state()
         
-        last_step_observation: list[float] = self.input_handler.get_input(new_state)
+        last_step_observation: list[float] = self.io.get_input(new_state)
         reward = self.reward_function.compute(self.prev_game_state, new_state)
         self.is_done = new_state.get_terminated() or self.current_race_time_ms > self.max_race_time_ms
         
@@ -58,8 +57,5 @@ class Game:
     def launch(self) -> None:
         """ you need to invoke the function before using the class"""
         
-        self.comm_manager.connect()
+        self.io.launch()
         # self._prev_game_state: GameState = jakaś_klasa_do_łączenia_inputu_z_comm_manager_i_danych_o_trasie_z_gry.get_state()
-        
-    def __del__(self) -> None:
-        pass # TODO zaimplenetować zamykanie połączenia 
