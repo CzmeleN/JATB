@@ -54,7 +54,7 @@ Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
 
     - winetricks from your package manager
     - official trackmania installer https://nadeo-download.cdn.ubi.com/trackmaniaforever/tmnationsforever_setup.exe
-    - tagged WINE 11.0 wow64 release https://github.com/Kron4ek/Wine-Builds/releases/download/11.0/wine-11.0-amd64.tar.xz
+    - tagged WINE 11.0 wow64 release https://github.com/Kron4ek/Wine-Builds/releases/download/11.0/wine-11.0-amd64-wow64.tar.xz
     - latest TMLoader https://tomashu.pages.dev/modloader/modloader/TMLoader-latest.zip - I will reupload this zip to have a tagged version
     - dxvk2071 (see below)
 
@@ -64,7 +64,7 @@ Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
 
     - check the downloaded Wine checksum
     ```
-    echo "39574efa1132c3ca0d5c77dd2eddbe4a49cca0d6cc2c290ff4924493a1c40314" wine-11.0-amd64-wow64.tar.xz | sha256sum -c
+    echo "39574efa1132c3ca0d5c77dd2eddbe4a49cca0d6cc2c290ff4924493a1c40314 wine-11.0-amd64-wow64.tar.xz" | sha256sum -c
     ```
     - unpack Wine
     ```
@@ -127,9 +127,8 @@ Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
         - in another terminal source the env and launch TMNF
         - press okay, now launching through modloader should work and you should have TMInterface popup visible in TMNF
 
-    - now we will be launching TMNF like so:
+    - now we will be launching TMNF like so (it works from any dir!):
     ```
-    cd "$WINEPREFIX/drive_c/Program Files (x86)/TmNationsForever"
     wine ~/tmnf/TMLoader/TMLoader.exe run TmForever "default"
     # check whether ~ opens the TMInterface terminal
     # you can also check if $WINEPREFIX/drive_c/users/$USER/Documents/TMInterface was created
@@ -139,7 +138,25 @@ Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
     DXVK_HUD=version,fps wine ~/tmnf/TMLoader/TMLoader.exe run TmForever "default"
     ```
 
-4. now you're ready to cook
+    - create the bot profile if you don't wan't to use yours
+
+        - choose stay offline
+        - create a new **offline** profile (Account: none), any name that you'd like
+        - keep it as the **first** profile in the list (set autologin 1 will target it)
+
+4. link the campaign maps
+
+    - TMNF keeps user data in *Documents/TmForever*, but TMI's *map* command loads paths from *Tracks/Challenges*
+    ```
+    ln -s "$WINEPREFIX/drive_c/Program Files (x86)/TmNationsForever/GameData/Tracks/Campaigns/Nations/White" "$WINEPREFIX/drive_c/users/$USER/Documents/TmForever/Tracks/Challenges/"
+    ```
+
+    - check if you can select a map - in TMI's console (will only work **after** logging in)
+    ```
+    map White/A01-Race.Challenge.Gbx 
+    ```
+
+5. now you're ready to cook
 
     - add the JATB Link plugin
     ```
@@ -148,18 +165,17 @@ Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
     # or copy it - you will have to update it by yourself
     ```
 
-    - launch trackmania
+    - launch trackmania (should automatically log you in)
     ```
-    cd "$WINEPREFIX/drive_c/Program Files (x86)/TmNationsForever"
-    wine ~/tmnf/TMLoader/TMLoader.exe run TmForever "default" /configstring="set jatb_port 8450"
+    wine ~/tmnf/TMLoader/TMLoader.exe run TmForever "default" /configstring="set autologin 1; set jatb_port 8450"
     ```
 
-    - check the connection with CommManager
+    - check the connection with CommManager (will also load the A01 map)
     ```
     py JATB/jatb/trackmania_interface/test.py
     ```
 
-5. FAQ / Troubleshooting
+6. FAQ / Troubleshooting
 
     Q: there's no lighting in my game
     A: you're probably missing d3dx9 dlls, try running ```winetricks -q d3dx9``` with sourced env
