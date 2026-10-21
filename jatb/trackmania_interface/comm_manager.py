@@ -157,6 +157,8 @@ class CommManager:
                 raise ConnectionError("receiving frames stopped") from self._recv_error
             if not ok:
                 raise TimeoutError("no matching frame from TMNF")
+            if self._latest_frame is None:
+                raise RuntimeError("no frame after wait_for")
 
             return RecvFrame.from_buffer_copy(self._latest_frame)
 
