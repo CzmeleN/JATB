@@ -139,7 +139,7 @@ class CommManager:
             print(f"Forward: {fwd}, Up: {up}\n")
 
     def send_gas(self, gas: int) -> None:
-        self._send(MsgType.SET_GAS, bytes(AnalogPayload(-_clamp(gas)))) # analog gas is reversed
+        self._send(MsgType.SET_GAS, bytes(AnalogPayload(-_clamp(gas)))) # gas is reversed
 
     def send_steer(self, steer: int) -> None:
         self._send(MsgType.SET_STEER, bytes(AnalogPayload(_clamp(steer))))
