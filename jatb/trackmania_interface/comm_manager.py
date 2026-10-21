@@ -2,7 +2,9 @@ import socket
 import time
 import ctypes as C
 import sys
+import threading
 import numpy as np
+from collections.abc import Callable
 from enum import IntEnum
 
 # maybe move into a seperate file when we have more types ?
@@ -75,12 +77,18 @@ class CommManager:
     sock: socket.socket
     print_cd: int
     print_counter: int
+    _cond: threading.Condition
+    _latest_frame: RecvFrame | None
+    _recv_error: Exception | None
 
     def __init__(self, port: int, addr: str, print_cd: int):
         self.port = port
         self.addr = addr
         self.print_cd = print_cd
         self.print_counter = 0
+        self._cond = threading.Condition()
+        self._latest_frame = None
+        self._recv_error = None
 
     def _recv_n(self, n: int) -> bytes:
         buff = bytearray()
@@ -120,8 +128,7 @@ class CommManager:
         for cmd in GAME_SETTINGS:
             self.send_execute(cmd)
 
-    # TODO: return a Python-native type for the Bot
-    def recv_frame(self) -> None:
+    def recv_frame(self) -> RecvFrame:
         frame = RecvFrame.from_buffer_copy(self._recv_n(C.sizeof(RecvFrame)))
         fwd, up = _get_orientations(frame)
 
@@ -137,6 +144,43 @@ class CommManager:
             print(f"Gear: {frame.gear}")
             print(f"Turning rate: {frame.turning_rate}")
             print(f"Forward: {fwd}, Up: {up}\n")
+
+        return frame
+
+    def start_receiving(self) -> None:
+        """ starts a background thread keeping only the newest frame, call after connect() """
+        threading.Thread(target=self._receive_loop, daemon=True).start()
+
+    def _receive_loop(self) -> None:
+        try:
+            while True:
+                frame = self.recv_frame() # blocking, must stay outside the lock
+                with self._cond:
+                    self._latest_frame = frame
+                    self._cond.notify_all()
+        except Exception as e:
+            with self._cond:
+                self._recv_error = e
+                self._cond.notify_all()
+
+    def wait_for_frame(self, predicate: Callable[[RecvFrame], bool], timeout: float | None = None) -> RecvFrame:
+        """ blocks until the newest frame satisfies predicate, returns its copy """
+        with self._cond:
+            ok = self._cond.wait_for(
+                lambda: self._recv_error is not None
+                        or (self._latest_frame is not None and predicate(self._latest_frame)),
+                timeout)
+
+            if self._recv_error is not None:
+                raise ConnectionError("receiving frames stopped") from self._recv_error
+            if not ok:
+                raise TimeoutError("no matching frame from TMNF")
+
+            return RecvFrame.from_buffer_copy(self._latest_frame)
+
+    def get_latest_frame(self, timeout: float | None = None) -> RecvFrame:
+        """ copy of the newest frame, waits only for the very first one """
+        return self.wait_for_frame(lambda _: True, timeout)
 
     def send_gas(self, gas: int) -> None:
         self._send(MsgType.SET_GAS, bytes(AnalogPayload(-_clamp(gas)))) # analog gas is reversed

@@ -36,11 +36,15 @@ class Game:
     def reset(self) -> None:
         self.io.restart()
         # self._prev_game_state = jakaś_klasa_do_łączenia_inputu_z_comm_manager_i_danych_o_trasie_z_gry.get_state()
+        # TODO: wait for the new race (countdown, negative race_time), then for its start, not the latest frame:
+        #       wait_for_frame(lambda f: f.race_time < 0), then wait_for_frame(lambda f: f.race_time >= 0)
         
     def make_step(self, policy_output: list[float]) -> StepResult:
         self.io.send_output_to_the_game(policy_output)
         
         # new_state: GameState = jakaś_klasa_do_łączenia_inputu_z_comm_manager_i_danych_o_trasie_z_gry.get_state()
+        # TODO: wait until the game advances by one step, not just take the latest frame:
+        #       wait_for_frame(lambda f: f.race_time >= prev_race_time + SIMULATION_ONE_STEP_TIME_MS)
         
         last_step_observation: list[float] = self.io.get_input(new_state)
         reward = self.reward_function.compute(self.prev_game_state, new_state)
