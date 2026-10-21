@@ -50,9 +50,17 @@ class Game:
         self.current_race_time_ms += SIMULATION_ONE_STEP_TIME_MS
         
         return StepResult(last_step_observation, reward, self.is_finished)
+    
+    def __launch_trackmania(self) -> None:
+        pass # TODO
+
+    def __delete__(self):
+        pass # TODO cloase trackmania
          
     def launch(self) -> None:
         """ you need to invoke the function before using the class"""
         
+        self.__launch_trackmania() 
         self.io.launch()
         # self._prev_game_state: GameState = jakaś_klasa_do_łączenia_inputu_z_comm_manager_i_danych_o_trasie_z_gry.get_state()
+        

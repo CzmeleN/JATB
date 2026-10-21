@@ -1,10 +1,14 @@
 from jatb.io.output_handler.Ioutput_handler import IOutputHandler
 from jatb.trackmania_interface.comm_manager import CommManager
 
+MAX_GAS_VALUE: int = 65536
+MAX_RIGHT_VALUE: int = 65536
+MAX_LEFT_VALUE: int = -65536
+
 class OutputHandler0(IOutputHandler):
     """ 
     output: 
-        [0] gas
+        [0] gas - binary value
         [1] left 
         [2] right 
         [3] gas + left 
@@ -20,19 +24,23 @@ class OutputHandler0(IOutputHandler):
         
         match value_idx_to_send:
             case 0:
-                self.__send_gas(output[0], comm_manager)
+                self.__send_gas(comm_manager)
+                comm_manager.send_steer(0)
             case 1:
+                comm_manager.send_gas(0)
                 self.__send_left(output[1], comm_manager)
             case 2:
+                comm_manager.send_gas(0)
                 self.__send_right(output[2], comm_manager)
             case 3:
-                self.__send_gas(output[3], comm_manager)
+                self.__send_gas(comm_manager)
                 self.__send_left(output[3], comm_manager)
             case 4:
-                self.__send_gas(output[4], comm_manager)
+                self.__send_gas(comm_manager)
                 self.__send_right(output[4], comm_manager)
             case 5:
-                pass
+                comm_manager.send_gas(0)
+                comm_manager.send_steer(0)
             
     @staticmethod
     def __clamp(val: float) -> float: 
@@ -49,22 +57,16 @@ class OutputHandler0(IOutputHandler):
     @staticmethod
     def __scale_steer_left(val: float) -> int:
         val = OutputHandler0.__clamp(val)
-        return OutputHandler0.__scale_val_0_1_to(val, -65536, 0)
+        return OutputHandler0.__scale_val_0_1_to(val, MAX_LEFT_VALUE, 0)
     
     @staticmethod
     def __scale_steer_right(val: float) -> int:
         val = OutputHandler0.__clamp(val)
-        return OutputHandler0.__scale_val_0_1_to(val, 0, 65536)
+        return OutputHandler0.__scale_val_0_1_to(val, 0, MAX_RIGHT_VALUE)
     
     @staticmethod
-    def __scale_gas(val: float) -> int:
-        val = OutputHandler0.__clamp(val)
-        return OutputHandler0.__scale_val_0_1_to(val, 0, 65536)
-        
-    @staticmethod
-    def __send_gas(val: float, comm_manager: CommManager) -> None:
-        val = OutputHandler0.__scale_gas(val)
-        comm_manager.send_gas(val)
+    def __send_gas(comm_manager: CommManager) -> None:
+        comm_manager.send_gas(MAX_GAS_VALUE)
     
     @staticmethod
     def __send_left(val: float, comm_manager: CommManager) -> None:
