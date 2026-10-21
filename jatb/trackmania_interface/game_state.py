@@ -175,11 +175,11 @@ class GameState:
         f_dist = math.hypot(f[0], f[1])
         t_dist = math.hypot(t[0], t[1])
         
-        if f_dist < -1e6 or t_dist < -1e6:
+        if f_dist < 1e-6 or t_dist < 1e-6:
             self.__heading_track = (0.0, 1.0)
         else:
             fx, fz = f[0] / f_dist, f[1] / f_dist 
-            tx, tz = t[0] / t_dist, t[0] / t_dist 
+            tx, tz = t[0] / t_dist, t[1] / t_dist 
             
             cos = fx * tx + fz * tz 
             sin = fx * tz - fz * tx 
