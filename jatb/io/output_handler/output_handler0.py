@@ -1,6 +1,10 @@
 from jatb.io.output_handler.Ioutput_handler import IOutputHandler
 from jatb.trackmania_interface.comm_manager import CommManager
 
+MAX_GAS_VALUE: int = 65536
+MAX_RIGHT_VALUE: int = 65536
+MAX_LEFT_VALUE: int = -65536
+
 class OutputHandler0(IOutputHandler):
     """ 
     output: 
@@ -53,16 +57,16 @@ class OutputHandler0(IOutputHandler):
     @staticmethod
     def __scale_steer_left(val: float) -> int:
         val = OutputHandler0.__clamp(val)
-        return OutputHandler0.__scale_val_0_1_to(val, -65536, 0)
+        return OutputHandler0.__scale_val_0_1_to(val, MAX_LEFT_VALUE, 0)
     
     @staticmethod
     def __scale_steer_right(val: float) -> int:
         val = OutputHandler0.__clamp(val)
-        return OutputHandler0.__scale_val_0_1_to(val, 0, 65536)
+        return OutputHandler0.__scale_val_0_1_to(val, 0, MAX_RIGHT_VALUE)
     
     @staticmethod
     def __send_gas(comm_manager: CommManager) -> None:
-        comm_manager.send_gas(65536)
+        comm_manager.send_gas(MAX_GAS_VALUE)
     
     @staticmethod
     def __send_left(val: float, comm_manager: CommManager) -> None:
