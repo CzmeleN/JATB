@@ -1,5 +1,6 @@
 // Current frame sent to client:
 // {
+//     int32    FrameId             
 //     int32    RaceTime              [ms]
 //     int32    RaceFinished          [0/1]
 //<----int32    GameState             [TM::GameState]---->
@@ -10,7 +11,7 @@
 //     int32    Gear
 //     float32  TurningRate
 // }
-// sum = 4 + 4 + 12 + 12 + 36 + 12 + 4 + 4 = 88 bytes
+// sum = 4 + 4 + 4 + 12 + 12 + 36 + 12 + 4 + 4 = 92 bytes
 // port is set via /configstring="set jatb_port <port>"
 
 // Frame received from client:
@@ -31,6 +32,7 @@ enum MsgType {
     Execute  = 4
 }
 
+int frameId = 0;
 int pendingType = -1; // waiting for header
 uint pendingLen = 0;
 array<string> commQueue;
@@ -153,7 +155,8 @@ void OnRunStep(SimulationManager@ sim) {
     auto@ car = sim.SceneVehicleCar;
     const mat3 rot = dyna.CurrentState.Location.Rotation;
 
-    bool ok = client.Write(int(sim.RaceTime));
+    bool ok = client.Write(frameId);
+    ok = ok && client.Write(int(sim.RaceTime));
     ok = ok && client.Write(int((sim.PlayerInfo.RaceFinished || sim.TickTime > sim.RaceTime) ? 1 : 0));
     ok = ok && WriteVec3(dyna.CurrentState.LinearSpeed);
     ok = ok && WriteVec3(car.CurrentLocalSpeed);
@@ -167,6 +170,8 @@ void OnRunStep(SimulationManager@ sim) {
         @client = null;
         ResetConnState();
     }
+
+    frameId++;
 }
 
 // keep Accept here because it's non-blocking

@@ -1,5 +1,6 @@
 from . import IInputHandler, IOutputHandler
 from jatb.trackmania_interface import CommManager, GameState, MapDataProvider, RecvFrame
+from time import sleep
 
 class Io:
     def __init__(self, 
@@ -25,6 +26,7 @@ class Io:
         self._comm_manager.start_receiving()
         for cmd in self.start_cmds:
             self._comm_manager.send_execute(cmd)
+        sleep(1)
         self._comm_manager.send_select_lvl(self.map_name)
 
     def restart(self) -> None:
@@ -51,6 +53,7 @@ class Io:
         game_state.set_gear(frame.gear)
         game_state.set_turning_rate(frame.turning_rate)
         game_state.set_is_finished(bool(frame.race_finished))
+        print(f"id: {frame.frame_id}, time: {frame.race_time}, finished: {frame.race_finished}")
 
     def __update_inplace_game_state_based_on_map_data_provider(self, game_state: GameState) -> None: 
         # for now we don't use any data from map_data_provider

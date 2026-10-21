@@ -55,6 +55,7 @@ class Game:
         last_step_observation: list[float] = self.io.get_input(new_state)
         reward = self.reward_function.compute(self.prev_game_state, new_state)
         self.is_finished = new_state.get_is_finished() or self.current_race_time_ms > self.max_race_time_ms
+        print(f"finished: {self.is_finished}, curr: {self.current_race_time_ms} / {self.max_race_time_ms}")
 
         self.prev_game_state = new_state 
         self.current_race_time_ms += SIMULATION_ONE_STEP_TIME_MS
