@@ -75,8 +75,7 @@ class CommManager:
     port: int
     addr: str
     sock: socket.socket
-    print_cd: int
-    print_counter: int
+    print_cd: int # TODO: unused, remove after #27
     _cond: threading.Condition
     _latest_frame: RecvFrame | None
     _recv_error: Exception | None
@@ -85,7 +84,6 @@ class CommManager:
         self.port = port
         self.addr = addr
         self.print_cd = print_cd
-        self.print_counter = 0
         self._cond = threading.Condition()
         self._latest_frame = None
         self._recv_error = None
@@ -129,23 +127,7 @@ class CommManager:
             self.send_execute(cmd)
 
     def recv_frame(self) -> RecvFrame:
-        frame = RecvFrame.from_buffer_copy(self._recv_n(C.sizeof(RecvFrame)))
-        fwd, up = _get_orientations(frame)
-
-        self.print_counter += 1
-        if (self.print_counter == self.print_cd):
-            self.print_counter = 0
-            print(f"Time since race start: {frame.race_time} ms")
-            print(f"Finished: {frame.race_finished}")
-            print(f"Velocity; {frame.velocity}")
-            print(f"Local speed: {frame.current_local_speed}")
-            print(f"Rotation: {frame.rotation}")
-            print(f"Angular vel: {frame.angular_velocity}")
-            print(f"Gear: {frame.gear}")
-            print(f"Turning rate: {frame.turning_rate}")
-            print(f"Forward: {fwd}, Up: {up}\n")
-
-        return frame
+        return RecvFrame.from_buffer_copy(self._recv_n(C.sizeof(RecvFrame)))
 
     def start_receiving(self) -> None:
         """ starts a background thread keeping only the newest frame, call after connect() """

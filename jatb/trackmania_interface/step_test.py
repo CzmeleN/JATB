@@ -17,7 +17,7 @@ STEP_MS = 50
 STEPS = 100
 
 def main() -> None:
-    comm = CommManager(PORT, "127.0.0.1", print_cd=10**9) # silence recv_frame debug prints
+    comm = CommManager(PORT, "127.0.0.1", print_cd=0)
     comm.connect()
     comm.setup()
     comm.start_receiving()
