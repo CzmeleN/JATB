@@ -1,5 +1,5 @@
 from random import random
-from jatb.game.policy.Ipolicy import IPolicy 
+from jatb.policy.Ipolicy import IPolicy 
 
 class RandomPolicy(IPolicy):
     def __init__(self, output_size: int) -> None:

@@ -4,6 +4,13 @@ from jatb.io.input_handler import IInputHandler, InputHandler0
 from jatb.io.output_handler import IOutputHandler, OutputHandler0
 from jatb.policy import IPolicy, RandomPolicy
 
+GAME_SETTINGS = (
+    "set unfocused_fps_limit false",
+    "set skip_map_load_screens true",
+    "set disable_forced_camera true",
+    "set autorewind false",
+)
+
 def main() -> None:
     reward_function: IRewardFunction = DummyRewardFunction()
     input_handler: IInputHandler = InputHandler0()
@@ -17,6 +24,7 @@ def main() -> None:
     
     game.launch()
     while not game.is_finished:
+        print("next step")
         observations: list[float] = game.get_observations()
         policy_output: list[float] = policy.predict(observations)
         step_result: StepResult = game.make_step(policy_output)
