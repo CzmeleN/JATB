@@ -28,23 +28,22 @@ class Game:
         self.current_race_time_ms: int = 0
         self.prev_game_state: GameState = GameState()
         self.is_finished: bool = False
-        self.io = Io(input_handler, output_handler, port, addr, print_cd)
+        self.io = Io(input_handler, output_handler, port, addr, print_cd, map_name)
         
     def get_observations(self) -> list[float]:
         return self.io.get_input(self.prev_game_state)
         
     def reset(self) -> None:
         self.io.restart()
-        # self._prev_game_state = jakaś_klasa_do_łączenia_inputu_z_comm_manager_i_danych_o_trasie_z_gry.get_state()
         
     def make_step(self, policy_output: list[float]) -> StepResult:
         self.io.send_output_to_the_game(policy_output)
         
-        # new_state: GameState = jakaś_klasa_do_łączenia_inputu_z_comm_manager_i_danych_o_trasie_z_gry.get_state()
+        new_state: GameState = self.io.get_game_state()
         
         last_step_observation: list[float] = self.io.get_input(new_state)
         reward = self.reward_function.compute(self.prev_game_state, new_state)
-        self.is_finished = new_state.is_finished() or self.current_race_time_ms > self.max_race_time_ms
+        self.is_finished = new_state.get_is_finished() or self.current_race_time_ms > self.max_race_time_ms
         
         self.prev_game_state = new_state 
         self.current_race_time_ms += SIMULATION_ONE_STEP_TIME_MS
@@ -62,5 +61,4 @@ class Game:
         
         self.__launch_trackmania() 
         self.io.launch()
-        # self._prev_game_state: GameState = jakaś_klasa_do_łączenia_inputu_z_comm_manager_i_danych_o_trasie_z_gry.get_state()
         
