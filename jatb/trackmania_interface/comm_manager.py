@@ -16,6 +16,7 @@ class Vec3(C.LittleEndianStructure):
 class RecvFrame(C.LittleEndianStructure):
     _pack_ = 1
     _fields_ = [
+        ("frame_id",            C.c_int32),
         ("race_time",           C.c_int32),
         ("race_finished",       C.c_int32),
         # ("game_state",          C.c_int32),
@@ -26,7 +27,7 @@ class RecvFrame(C.LittleEndianStructure):
         ("gear",                C.c_int32),
         ("turning_rate",        C.c_float),
     ]
-assert C.sizeof(RecvFrame) == 88
+assert C.sizeof(RecvFrame) == 92
 
 # to link.as
 class MsgType(IntEnum):
@@ -126,6 +127,7 @@ class CommManager:
         try:
             while True:
                 frame = self.recv_frame() # blocking, must stay outside the lock
+                print(f"frame got {frame.frame_id}")
                 with self._cond:
                     self._latest_frame = frame
                     self._cond.notify_all()
