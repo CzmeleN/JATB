@@ -19,6 +19,7 @@ class Io:
         """ you need to invoke the function before using the class"""
         
         self._comm_manager.connect()
+        self._comm_manager.start_receiving()
         
     def restart(self) -> None: 
         self._comm_manager.send_restart() 
