@@ -12,6 +12,13 @@ GAME_SETTINGS = (
     "set autorewind false",
 )
 
+GAME_SETTINGS = (
+    "set unfocused_fps_limit false",
+    "set skip_map_load_screens true",
+    "set disable_forced_camera true",
+    "set autorewind false",
+)
+
 def main() -> None:
     reward_function: IRewardFunction = DummyRewardFunction()
     input_handler: IInputHandler = InputHandler0()
@@ -25,6 +32,7 @@ def main() -> None:
     
     game.launch()
     while not game.is_finished:
+        print("next step")
         observations: list[float] = game.get_observations()
         # print("obs done",end='')
         policy_output: list[float] = policy.predict(observations)
