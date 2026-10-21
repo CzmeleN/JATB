@@ -46,10 +46,10 @@ class GameState:
             raise ValueError("Expected a tuple containing exactly 3 values")
         
     # is_finished
-    def set_terminated(self, value: bool) -> None:
+    def set_is_finished(self, value: bool) -> None:
         self.__is_finished = value
 
-    def get_terminated(self) -> bool:
+    def get_is_finished(self) -> bool:
         return self.__is_finished
     
     # velocity 

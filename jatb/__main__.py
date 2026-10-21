@@ -13,7 +13,7 @@ def main() -> None:
     game: Game = Game(reward_function,
                       input_handler,
                       output_handler,
-                      "jakaś nazwa mapy")
+                      "White/A01-Race.Challenge.Gbx")
     
     game.launch()
     while not game.is_finished:
