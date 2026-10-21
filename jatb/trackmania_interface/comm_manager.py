@@ -158,6 +158,9 @@ class CommManager:
             if not ok:
                 raise TimeoutError("no matching frame from TMNF")
 
+            if self._latest_frame is None:
+                raise RuntimeError("no frame after wait_for")
+
             return RecvFrame.from_buffer_copy(self._latest_frame)
 
     def get_latest_frame(self, timeout: float | None = None) -> RecvFrame:
