@@ -1,9 +1,10 @@
 // Current frame sent to client:
 // {
-//     int32    FrameId             
+//     int32    FrameId
 //     int32    RaceTime              [ms]
 //     int32    RaceFinished          [0/1]
 //<----int32    GameState             [TM::GameState]---->
+//     float32  Position[3]           [m]
 //     float32  Velocity[3]           [m/s]
 //     float32  CurrentLocalSpeed[3]  [m/s]
 //     float32  Rotation[9]
@@ -11,7 +12,7 @@
 //     int32    Gear
 //     float32  TurningRate
 // }
-// sum = 4 + 4 + 4 + 12 + 12 + 36 + 12 + 4 + 4 = 92 bytes
+// sum = 4 + 4 + 4 + 12 + 12 + 12 + 36 + 12 + 4 + 4 = 104 bytes
 // port is set via /configstring="set jatb_port <port>"
 
 // Frame received from client:
@@ -153,15 +154,17 @@ void OnRunStep(SimulationManager@ sim) {
 
     auto@ dyna = sim.Dyna;
     auto@ car = sim.SceneVehicleCar;
-    const mat3 rot = dyna.CurrentState.Location.Rotation;
+    auto@ state = dyna.CurrentState;
+    const mat3 rot = state.Location.Rotation;
 
     bool ok = client.Write(frameId);
     ok = ok && client.Write(int(sim.RaceTime));
     ok = ok && client.Write(int((sim.PlayerInfo.RaceFinished || sim.TickTime > sim.RaceTime) ? 1 : 0));
-    ok = ok && WriteVec3(dyna.CurrentState.LinearSpeed);
+    ok = ok && WriteVec3(state.Location.Position);
+    ok = ok && WriteVec3(state.LinearSpeed);
     ok = ok && WriteVec3(car.CurrentLocalSpeed);
     ok = ok && WriteVec3(rot.x) && WriteVec3(rot.y) && WriteVec3(rot.z);
-    ok = ok && WriteVec3(dyna.CurrentState.AngularSpeed);
+    ok = ok && WriteVec3(state.AngularSpeed);
     ok = ok && client.Write(int(car.CarEngine.Gear));
     ok = ok && client.Write(car.TurningRate);
 
