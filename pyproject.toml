@@ -15,10 +15,14 @@ dependencies = [
 
 [project.scripts]
 jatb = "jatb.__main__:main"
+record = "scripts.record:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-packages = [{ include = "jatb" }]
+packages = [
+    { include = "jatb" },
+    { include = "scripts" }
+]

@@ -1,18 +1,16 @@
+from contextlib import contextmanager
 import socket
 import time
 import ctypes as C
 import sys
 import threading
 import numpy as np
+import csv
+from jatb.utils import Vec3, vec3_to_tuple
 from collections.abc import Callable
 from enum import IntEnum
 
-# maybe move into a seperate file when we have more types ?
-class Vec3(C.LittleEndianStructure):
-    _pack_ = 1
-    _fields_ = [("x", C.c_float), ("y", C.c_float), ("z", C.c_float)]
-
-# from link.as
+# from jatb_link.as
 class RecvFrame(C.LittleEndianStructure):
     _pack_ = 1
     _fields_ = [
@@ -20,6 +18,7 @@ class RecvFrame(C.LittleEndianStructure):
         ("race_time",           C.c_int32),
         ("race_finished",       C.c_int32),
         # ("game_state",          C.c_int32),
+        ("position",            Vec3),
         ("velocity",            Vec3),
         ("current_local_speed", Vec3),
         ("rotation",            Vec3 * 3),
@@ -27,9 +26,9 @@ class RecvFrame(C.LittleEndianStructure):
         ("gear",                C.c_int32),
         ("turning_rate",        C.c_float),
     ]
-assert C.sizeof(RecvFrame) == 92
+assert C.sizeof(RecvFrame) == 104
 
-# to link.as
+# to jatb_link.as
 class MsgType(IntEnum):
     SET_GAS   = 1 # int32 [-65536, 65536]  : 4B
     SET_STEER = 2 # int32 [-65536, 65536]  : 4B
@@ -53,6 +52,25 @@ assert C.sizeof(AnalogPayload) == 4
 
 ANALOG_MAX = 65536
 PAYLOAD_MAX = 0xFFFF
+
+CSV_HEADER = [
+    "frame_id", "race_time", "race_finished",
+    "pos_x", "pos_y", "pos_z",
+    "vel_x", "vel_y", "vel_z",
+    "local_x", "local_y", "local_z",
+    *[f"rot_{a}{b}" for a in "xyz" for b in "xyz"],
+    "angvel_x", "angvel_y", "angvel_z",
+    "gear", "turning_rate",
+]
+
+def _frame_to_list(f: RecvFrame) -> list:
+    return [
+        f.frame_id, f.race_time, f.race_finished,
+        *vec3_to_tuple(f.position), *vec3_to_tuple(f.velocity), *vec3_to_tuple(f.current_local_speed),
+        *(c for r in f.rotation for c in vec3_to_tuple(r)),
+        *vec3_to_tuple(f.angular_velocity),
+        f.gear, f.turning_rate,
+    ]
 
 # TODO: add a correct return type
 def _get_orientations(f: RecvFrame):
@@ -81,6 +99,9 @@ class CommManager:
         self._cond = threading.Condition()
         self._latest_frame = None
         self._recv_error = None
+        self._log_lock = threading.Lock()
+        self._log_file = None
+        self._log_writer = None
 
     def _recv_n(self, n: int) -> bytes:
         buff = bytearray()
@@ -127,7 +148,10 @@ class CommManager:
         try:
             while True:
                 frame = self.recv_frame() # blocking, must stay outside the lock
-                print(f"frame got {frame.frame_id}")
+                # print(f"frame got {frame.frame_id}")
+                with self._log_lock:
+                    if self._log_writer is not None:
+                        self._log_writer.writerow(_frame_to_list(frame))
                 with self._cond:
                     self._latest_frame = frame
                     self._cond.notify_all()
@@ -171,4 +195,27 @@ class CommManager:
 
     def send_restart(self) -> None:
         self._send(MsgType.RESTART)
+
+    def start_logging(self, path: str) -> None:
+        with self._log_lock:
+            if self._log_writer is not None:
+                raise RuntimeError("already logging")
+            self._log_file = open(path, "w", newline="")
+            self._log_writer = csv.writer(self._log_file)
+            self._log_writer.writerow(CSV_HEADER)
+
+    def stop_logging(self) -> None:
+        with self._log_lock:
+            if self._log_file is not None:
+                self._log_file.close()
+            self._log_file = None
+            self._log_writer = None
+
+    @contextmanager
+    def logging_to(self, path: str):
+        self.start_logging(path)
+        try:
+            yield
+        finally:
+            self.stop_logging()
 

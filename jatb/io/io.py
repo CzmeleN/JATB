@@ -1,5 +1,6 @@
 from . import IInputHandler, IOutputHandler
 from jatb.trackmania_interface import CommManager, GameState, MapDataProvider, RecvFrame
+from jatb.utils import vec3_to_tuple
 from time import sleep
 
 class Io:
@@ -38,18 +39,14 @@ class Io:
     def get_input(self, game_state: GameState) -> list[float]:
         return self._input_handler.get_input(game_state)
 
-    @staticmethod
-    def __vec3_to_tuple(v) -> tuple[float, float, float]:
-        return (v.x, v.y, v.z)
-
     def __update_inplace_game_state_based_on_input_handler(self, game_state: GameState) -> None:
         frame: RecvFrame = self._comm_manager.get_latest_frame()
 
-        game_state.set_velocity(Io.__vec3_to_tuple(frame.velocity))
-        game_state.set_current_local_speed(Io.__vec3_to_tuple(frame.current_local_speed))
-        game_state.set_orientation_up(Io.__vec3_to_tuple(frame.rotation[1]))
-        game_state.set_orientation_forward(Io.__vec3_to_tuple(frame.rotation[2]))
-        game_state.set_angular_velocity(Io.__vec3_to_tuple(frame.angular_velocity))
+        game_state.set_velocity(vec3_to_tuple(frame.velocity))
+        game_state.set_current_local_speed(vec3_to_tuple(frame.current_local_speed))
+        game_state.set_orientation_up(vec3_to_tuple(frame.rotation[1]))
+        game_state.set_orientation_forward(vec3_to_tuple(frame.rotation[2]))
+        game_state.set_angular_velocity(vec3_to_tuple(frame.angular_velocity))
         game_state.set_gear(frame.gear)
         game_state.set_turning_rate(frame.turning_rate)
         game_state.set_is_finished(bool(frame.race_finished))

@@ -72,7 +72,7 @@ Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
     ```
     - load the exports (also creates prefix folder)
     ```
-    source JATB/utils/env.sh
+    source JATB/scripts/env.sh
     ```
     - check the Wine installation
     ```
@@ -161,7 +161,7 @@ Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
     - add the JATB Link plugin
     ```
     cd "$WINEPREFIX/drive_c/users/$USER/Documents/TMInterface/Plugins/"
-    ln -s ~/.../JATB/utils/jatb_link.as jatb_link.as
+    ln -s ~/.../JATB/scripts/jatb_link.as jatb_link.as
     # or copy it - you will have to update it by yourself
     ```
 
@@ -170,9 +170,11 @@ Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
     wine ~/tmnf/TMLoader/TMLoader.exe run TmForever "default" /configstring="set autologin 1; set jatb_port 8450"
     ```
 
-    - check the connection with CommManager (will also load the A01 map)
+    - check the connection with CommManager
     ```
-    py JATB/jatb/trackmania_interface/test.py
+    poetry run jatb
+    # or
+    poetry run record <out.csv>
     ```
 
 6. FAQ / Troubleshooting
