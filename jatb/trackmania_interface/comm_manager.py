@@ -6,13 +6,9 @@ import sys
 import threading
 import numpy as np
 import csv
+from jatb.utils import Vec3, vec3_to_tuple
 from collections.abc import Callable
 from enum import IntEnum
-
-# maybe move into a seperate file when we have more types ?
-class Vec3(C.LittleEndianStructure):
-    _pack_ = 1
-    _fields_ = [("x", C.c_float), ("y", C.c_float), ("z", C.c_float)]
 
 # from jatb_link.as
 class RecvFrame(C.LittleEndianStructure):
@@ -67,15 +63,12 @@ CSV_HEADER = [
     "gear", "turning_rate",
 ]
 
-def _vec_to_tuple(v: Vec3) -> tuple[float, float, float]:
-    return (v.x, v.y, v.z)
-
 def _frame_to_list(f: RecvFrame) -> list:
     return [
         f.frame_id, f.race_time, f.race_finished,
-        *_vec_to_tuple(f.position), *_vec_to_tuple(f.velocity), *_vec_to_tuple(f.current_local_speed),
-        *(c for r in f.rotation for c in _vec_to_tuple(r)),
-        *_vec_to_tuple(f.angular_velocity),
+        *vec3_to_tuple(f.position), *vec3_to_tuple(f.velocity), *vec3_to_tuple(f.current_local_speed),
+        *(c for r in f.rotation for c in vec3_to_tuple(r)),
+        *vec3_to_tuple(f.angular_velocity),
         f.gear, f.turning_rate,
     ]
 
@@ -225,3 +218,4 @@ class CommManager:
             yield
         finally:
             self.stop_logging()
+
