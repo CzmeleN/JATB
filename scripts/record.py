@@ -18,7 +18,7 @@ def main() -> None:
 
     print("waiting for the start")
 
-    comm.wait_for_frame(lambda f: f.race_time < 0)
+    comm.wait_for_frame(lambda f: f.race_time >= -10)
 
     with comm.logging_to(OUT):
         print(f"started recording to {OUT}")
