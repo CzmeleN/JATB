@@ -10,7 +10,7 @@
 
 ## Źródła wiedzy
 
-- [Notatki o NEAT](/REPORTS/neat_notatki.md)
+- [Notatki o NEAT](/REPORTS/NEAT.md)
 
 ## Plany na przyszłość
 
