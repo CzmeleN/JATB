@@ -1,4 +1,4 @@
-# Report 01
+# Report 02
 
 ## Progress
 
@@ -10,9 +10,7 @@
 
 ## Źródła wiedzy
 
-- [Paper o DQN](https://arxiv.org/pdf/1312.5602)
-- [Paper o NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.cec02.pdf)
-- [Notatki o NEAT](/REPORTS/neat_notatki.md)
+- [Notatki o NEAT](/REPORTS/NEAT.md)
 
 ## Plany na przyszłość
 
