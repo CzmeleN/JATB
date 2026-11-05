@@ -1,87 +1,213 @@
-DQN (Deep Q-Learning), skrót
-paper: Mnih i in., *Playing Atari with Deep Reinforcement Learning*, 2013, [arXiv:1312.5602](https://arxiv.org/abs/1312.5602)
+# DQN (Deep Q-Network) dla TMNF
 
-idea: sieć Q(s, a) przewiduje, ile nagrody jeszcze zbierzemy, jeśli w stanie s zrobimy akcję a, a potem będziemy grać dobrze.
-jak znamy Q, to jazda jest prosta: w każdym kroku bierzemy akcję z największym Q.
+źródło: Mnih i in., *Playing Atari with Deep Reinforcement Learning*, 2013, [arXiv:1312.5602](https://arxiv.org/abs/1312.5602)
 
-co znaczy co:
-* s - stan, czyli wejście sieci: 18 liczb z gry albo obraz (do ustalenia, patrz „wejście sieci” niżej)
-* a - akcja: indeks 0..8 z `ACTIONS` w `jatb/bot/actions.py` (gaz / nic / hamulec × lewo / prosto / prawo)
-* r - nagroda za jeden krok: postęp wzdłuż linii centralnej trasy prowadzącej do mety, czyli o ile w tym kroku przesunął się rzut auta na tę linię (do przodu > 0, do tyłu < 0); im szybciej jedziemy, tym większe r w każdym kroku
-* s' - stan po kroku, done - czy epizod się skończył
-* krok - 50 ms: akcję trzymamy przez 5 ticków fizyki (po 10 ms), czyli 20 decyzji na sekundę
-* γ (gamma) - jak bardzo liczy się przyszłość, u nas 0.99: agent patrzy ok. 100 kroków ≈ 5 s do przodu
-* ε (epsilon) - szansa na losową akcję zamiast najlepszej (eksploracja), maleje w trakcie treningu
-* replay memory D - bufor ostatnich N przejść (s, a, r, s', done), z niego losujemy dane do nauki
+wzory są w blokach kodu (Unicode zamiast LaTeX-a), żeby czytały się w każdym podglądzie markdowna
 
-wejście sieci (do ustalenia, zależy od tego, skąd bot ma wiedzieć, co go lokalnie czeka, np. zakręt w prawo):
-* wariant A, 18 liczb z gry (prędkości, obrót, bieg, skręt kół, kąt i odległość od środka drogi, najbliższe zakręty):
-    * informację o tym, co przed nami, liczymy sami z danych mapy
-    * wystarczy MLP 18 → 128 → 128 → 9, ReLU (`DQN` w `jatb/trainer/dqn_agent.py`)
-* wariant B, obraz z gry:
-    * sieć sama „widzi”, co ją czeka, nie musimy tego liczyć z mapy
-    * jak w paperze: CNN, obraz w skali szarości 84×84, 4 ostatnie klatki naraz (z jednej nie widać ruchu)
-    * warstwy: conv 16 filtrów 8×8, stride 4 → conv 32 filtry 4×4, stride 2 → fc 256 → 9 wyjść
-    * droższe obliczeniowo i wolniej się uczy (paper: 10 mln klatek na grę)
-* wariant C, oba naraz: obraz przez CNN + liczby z gry (prędkość itp.) doklejone przed warstwami fc
+---
 
-sieć (w każdym wariancie):
-* wyjście: 9 liczb, czyli Q dla każdej akcji naraz (jeden forward), ostatnia warstwa liniowa
-* kolejności `ACTIONS` nie zmieniamy: indeks akcji = numer wyjścia sieci = to, co siedzi w buforze
+## 1. wprowadzenie
 
-DQN pętla
-1. weź stan s z gry
-2. z ppb ε wybierz losową akcję, wpp. a = argmax Q(s, ·)
-3. wyślij akcję do gry, po 50 ms odczytaj s', r, done
-4. zapisz (s, a, r, s', done) w D
-5. wylosuj z D minibatch (np. 64 przejścia)
-6. dla każdego przejścia policz cel:
-    * y = r, jeśli done
-    * y = r + γ · max Q_target(s', ·), wpp.
-7. krok gradientu, żeby Q(s, a) zbliżyło się do y (loss Huber / MSE)
-8. lekko przesuń sieć target w stronę głównej sieci
-9. go to 1. (po done: restart wyścigu)
+### 1.1 setup
+
+* agent = auto, środowisko = TMNF przez TMInterface
+* krok = 50 ms czasu gry (5 ticków fizyki po 10 ms), czyli 20 decyzji na sekundę. w każdym kroku:
+    * `s` - stan, wejście sieci: wektor liczb z input handlera (`InputHandler0`, 18 liczb)
+    * `a` - akcja, którą wybieramy (sekcja 1.2)
+    * `r` - nagroda za ten krok, liczona z dwóch kolejnych stanów gry (`IRewardFunction`)
+    * `s'` - stan po kroku
+    * `done` - czy epizod się skończył
+* przejście = `(s, a, r, s', done)`, to jest jednostka danych, na której się uczymy
+* epizod = jeden przejazd: od startu do mety, wypadnięcia albo limitu czasu
+* zwrot (return) = suma nagród od teraz do końca, przyszłe nagrody ważone przez `γ`:
 
 ```
-błąd TD:  δ = r + γ · max_a' Q_target(s', a') − Q(s, a)
-update:   wagi przesuwamy tak, żeby δ → 0
+G_t = r_t + γ·r_{t+1} + γ²·r_{t+2} + ...        0 ≤ γ < 1
 ```
 
-przykład: auto przed zakrętem, sieć daje Q = [.., gaz+prosto: 12.0, gaz+lewo: 10.5, ..], więc jedzie prosto, ale uderza w ścianę.
-auto stoi, więc postęp r ≈ 0, a s' to stan „po zderzeniu” z niskim Q, więc y wychodzi dużo mniejsze niż 12.0 i Q(gaz+prosto) w tym stanie spada.
-następnym razem wygrywa gaz+lewo. informacja o ścianie cofa się tak krok po kroku do wcześniejszych stanów.
+* `γ` mówi, jak daleko agent patrzy w przyszłość: horyzont ≈ `1 / (1 − γ)` kroków. przy `γ = 0.99` to 100 kroków ≈ 5 s jazdy. horyzont w sekundach zależy od długości kroku, więc zmiana kroku = zmiana horyzontu
+* cel agenta: wybierać akcje tak, żeby oczekiwany zwrot był jak największy
 
-po co replay memory:
+### 1.2 akcje
+
+* zbiór akcji jest skończony: K akcji, akcja to indeks `0..K−1`
+* sieć ma K wyjść, jedno na każdą akcję, więc numer wyjścia = numer akcji = to, co trafia do bufora. kolejności akcji nie wolno zmieniać w trakcie treningu
+* akcja to **stała kombinacja klawiszy** (pełny gaz, pełny skręt), trzymana przez cały krok (50 ms)
+
+teraz w kodzie: `OutputHandler0`, K = 6
+
+| indeks | akcja |
+| --- | --- |
+| 0 | gaz, prosto |
+| 1 | lewo (bez gazu) |
+| 2 | prawo (bez gazu) |
+| 3 | gaz + lewo |
+| 4 | gaz + prawo |
+| 5 | nic |
+
+* `OutputHandler0` robi `argmax` po wyjściach (pasuje do DQN), ale **siłę skrętu bierze z wartości wybranego wyjścia**. przy DQN wyjścia to wartości Q, a nie intensywności, więc pod DQN potrzebny jest osobny output handler: wejście = indeks akcji, skręt zawsze pełny
+* nie ma hamulca, choć gra go obsługuje (ujemna wartość w `SET_GAS`)
+
+plan: K = 9, gaz / nic / hamulec × lewo / prosto / prawo (szkic w `jatb/bot/actions.py`)
+
+---
+
+## 2. Q-learning, idea
+
+uczymy się wartości pary stan-akcja:
+
+```
+Q(s, a) = oczekiwany zwrot, jeśli w stanie s zrobimy akcję a, a potem będziemy grać optymalnie
+```
+
+jak znamy Q, to polityka jest za darmo, bierzemy akcję z największym Q:
+
+```
+π(s) = argmax_a Q(s, a)
+```
+
+optymalne Q spełnia równanie Bellmana: wartość teraz = nagroda teraz + zdyskontowana wartość najlepszej akcji w następnym stanie
+
+```
+Q*(s, a) = E[ r + γ · max_a' Q*(s', a') ]
+```
+
+Q-learning: po każdym przejściu przesuwamy `Q(s, a)` w stronę nagrody + wartości najlepszej akcji w następnym stanie:
+
+```
+Q(s, a) ← Q(s, a) + α · ( r + γ · max_a' Q(s', a') − Q(s, a) )        α - learning rate
+```
+
+najważniejsza własność: **off-policy**. cel używa `max_a' Q(s', a')`, a nie akcji, którą faktycznie zrobiliśmy potem. dlatego można się uczyć z przejść zebranych dowolną polityką: losową, starszą wersją sieci, z innego przejazdu. to pozwala trzymać przejścia w buforze i używać ich wiele razy
+
+---
+
+## 3. DQN, learning objective
+
+### 3.1 wybór akcji: ε-greedy
+
+```
+a = losowa akcja (jednostajnie z K)        z ppb ε
+a = argmax_a Q_θ(s, a)                     wpp.
+```
+
+* „zgodnie z polityką” = puść `s` przez sieć, weź wyjście z największą wartością
+* ε na początku ≈ 1 (prawie losowo), potem maleje, coraz częściej jedzie sieć
+* bez eksploracji sieć nigdy nie sprawdzi akcji, które dziś uważa za gorsze
+
+### 3.2 loss
+
+na batchu B przejść `(s_j, a_j, r_j, s'_j, done_j)` z bufora:
+
+```
+Loss(θ) = (1/B) · Σ_j  ℓ( Q_θ(s_j, a_j) − y_j )          B - rozmiar batcha
+
+y_j = r_j                                       jeśli done_j
+y_j = r_j + γ · max_a' Q_θ⁻(s'_j, a')           wpp.
+```
+
+**learning objective**: minimalizujemy `Loss(θ)`, czyli przesuwamy `Q_θ(s, a)` w stronę `y`. gdy loss → 0, Q spełnia równanie Bellmana na danych z bufora
+
+* `θ` - wagi sieci Q, `θ⁻` - wagi **sieci target**, wolniej zmienianej kopii sieci głównej. dzięki niej cel nie ucieka przy każdym update'cie
+* `done` tu znaczy **koniec prawdziwy** (meta, wypadnięcie). przy limicie czasu liczymy cel normalnie (z `max Q(s')`), bo auto mogło jechać dalej (`terminated` vs `truncated`)
+* `y` traktujemy jak stałą: liczymy bez gradientu
+
+### 3.3 sieć target
+
+* hard update: co C update'ów kopiujemy całe wagi, `θ⁻ ← θ`
+* soft update: po każdym update'cie `θ⁻ ← τ·θ + (1 − τ)·θ⁻`, np. τ = 0.005
+* oba działają, to tylko hiperparametr
+
+### 3.4 replay buffer
+
+bufor ostatnich M przejść, z którego losujemy batche. po co:
+
 * każde przejście jest używane wiele razy (jazda kosztuje czas symulacji)
-* kolejne kroki co 50 ms są prawie identyczne, a losowanie z bufora łamie tę korelację
-* sieć nie wpada w pętlę „uczę się tylko na tym, co sama teraz robię”
-* przez to uczymy się na starych danych, czyli algorytm musi być off-policy, więc Q-learning
+* kolejne kroki są prawie identyczne, losowanie z bufora łamie tę korelację
+* sieć nie uczy się tylko na tym, co sama teraz robi (bez tego łatwo o oscylacje)
+* działa, bo Q-learning jest off-policy (sekcja 2)
 
-po co sieć target: cel y liczymy osobną, wolniej zmienianą kopią sieci (soft update, τ = 0.005), żeby cel nie uciekał przy każdym kroku.
-w paperze z 2013 jej nie ma, doszła w wersji z 2015.
+---
 
-jak to u nas wygląda:
-* `jatb/bot/actions.py` - 9 akcji
-* `jatb/game/Game.py` - `make_step` wysyła akcję, robi krok 50 ms, zwraca obserwację, nagrodę i is_finished
-* `jatb/scheduler` - `Transition(state, action, reward, next_state, done)`, `collect_steps` zbiera kroki z kilku instancji gry naraz do jednego bufora
-* TODO `jatb/trainer/dqn_agent.py` - sieć, ε-greedy (`select_action`), update z siecią target (`update`); jest szkic, jeszcze niezacommitowany
-* `jatb/trainer/dqn_trainer.py` - pętla: zbierz kroki → wrzuć do bufora → update'y (bufor jeszcze TODO)
-* hiperparametry: γ = 0.99, lr = 3e-4 (AdamW), batch 64, ε od 0.9 do 0.01
+## 4. dwie pętle
 
-paper vs my:
-| | paper (Atari) | my (TMNF) |
-| --- | --- | --- |
-| wejście | 4 klatki 84×84 | 18 liczb albo obraz (do ustalenia) |
-| akcje | 4–18 | 9 |
-| krok | co 4 klatki (~67 ms) | 50 ms |
-| nagroda | zmiana wyniku w grze, przycięta do {−1, 0, 1} | postęp wzdłuż linii centralnej w kroku, nie przycinamy, najwyżej skalujemy (wielkość postępu = prędkość) |
-| ε | 1 → 0.1 liniowo, potem stałe 0.1 | 0.9 → 0.01 wykładniczo |
-| batch / optymalizator | 32 / RMSProp | 64 / AdamW |
+podział ról:
 
-na co uważać:
-* limit czasu ≠ koniec: przy timeoucie nie ustawiamy done = True w celu (auto mogło jechać dalej), done tylko przy mecie lub wypadnięciu
-* suma postępu za cały przejazd = długość trasy, niezależnie od czasu, więc za szybkość nagradza tylko γ < 1 (postęp zdobyty wcześniej jest więcej wart) i limit czasu
-* wypadnięcie / utknięcie nie daje kary wprost, bot traci tylko przyszły postęp; jeśli to za słaby sygnał, można dodać osobną karę
-* za mało update'ów: w paperze na każde nowe przejście przypada 32 próbki z bufora, u nas teraz 64 na 200 kroków
-* fizyka TMNF jest deterministyczna, więc bot może „wykuć” jedną trasę: losowe starty (miejsce, prędkość, obrót) i ewaluacja z małym ε
-* γ zależy od długości kroku: krótszy krok przy tym samym γ = krótszy horyzont w sekundach
+```
+Game         jedna gra, jedno auto: reset, make_step(akcja) → (s', r, done)
+Scheduler    pula gier: puszcza politykę na wszystkich, oddaje przejścia (s, a, r, s', done)
+DQNTrainer   bierze przejścia od schedulera → replay buffer → update sieci
+DQNAgent     sieć Q: select_action(s) (ε-greedy) i update(batch)
+```
+
+bufor i update siedzą w trenerze, a nie w schedulerze, żeby scheduler został wspólny z NEAT
+
+### 4.1 pętla zbierania (scheduler, w każdej grze)
+
+gra jest wstrzymywana na czas decyzji, dzięki czemu decyzja liczy się na aktualnym stanie, a krok ma zawsze równo 50 ms czasu gry, niezależnie od tego, ile trwało liczenie
+
+```
+s = reset()
+N razy (łącznie ze wszystkich gier):
+    a = select_action(s)                  # ε-greedy, gra stoi
+    s', r, done = make_step(a)            # 50 ms gry, potem pauza
+    zapisz (s, a, r, s', done)
+    s = reset() jeśli koniec przejazdu, wpp. s'
+```
+
+* stan dla polityki pochodzi z poprzedniego kroku: `make_step` wysyła akcję i od razu oddaje stan, który z niej wyszedł
+* N to **suma kroków ze wszystkich gier** na jedną rundę. przy 4 grach i N = 200 każda gra robi 50 kroków (2,5 s jazdy)
+* runda nie kończy się razem z przejazdem: gry mogą być w połowie trasy, po update'ach jadą dalej już nową siecią
+
+### 4.2 pętla treningu (DQNTrainer)
+
+```
+DQNTrainer.train():
+    powtarzaj:
+        przejścia = scheduler.collect_steps(agent.select_action, N)   # jazda (4.1)
+        buffer.extend(przejścia)
+        U razy: agent.update(buffer.sample(64))                       # nauka
+```
+
+* `agent.update(batch)`: cel y, loss, backprop, krok optymalizatora, update sieci target (sekcja 3)
+* na początku warmup: nie uczymy, dopóki w buforze jest mniej przejść niż batch
+* U = liczba update'ów w jednej rundzie. każdy update to **osobny losowy batch** z całego bufora
+* update nie czeka na koniec przejazdu: sieć zmienia się co rundę, przejazdy toczą się dalej
+* wersja synchroniczna: najpierw jazda, potem nauka, gry stoją. najprostsza i poprawna, od niej zaczynamy
+
+**replay ratio**, czyli ile razy (średnio) każde nowe przejście trafi do treningu, ważniejsze niż samo N:
+
+```
+replay ratio = U · B / N          B - rozmiar batcha (tu 64)
+```
+
+---
+
+## 5. ustalenia
+
+**nagroda** (plan): postęp wzdłuż linii centralnej trasy, czyli o ile w tym kroku przesunął się rzut auta na tę linię (do przodu > 0, do tyłu < 0)
+* suma postępu za cały przejazd = długość trasy, niezależnie od czasu. za szybkość nagradza więc tylko `γ < 1` (postęp zdobyty wcześniej jest więcej wart) i limit czasu
+* wypadnięcie / utknięcie nie daje kary wprost, bot traci tylko przyszły postęp. jeśli to za słaby sygnał, osobna kara
+* nie przycinamy do znaku (wtedy szybka i wolna jazda dawałyby to samo), najwyżej skalujemy, żeby typowe `|r|` było rzędu 1
+
+**koniec epizodu**: `terminated` (meta, wypadnięcie) idzie do celu jako `done`, `truncated` (limit czasu) tylko resetuje grę
+
+**losowe starty**: jako dodatek, nie zamiennik
+* plus: bot od początku widzi całą trasę, nie tylko pierwsze zakręty, i mniej „wykuwa” jedną trajektorię (fizyka jest deterministyczna)
+* ale auto musi też uczyć się własnych konsekwencji z ciągłej jazdy (za szybki wjazd w zakręt po własnym rozpędzeniu się)
+* start z sensownego stanu (pozycja, prędkość, obrót), np. ze stanów zapisanych w poprzednich przejazdach, nie z dowolnego miejsca
+* np. 70–80% przejazdów od startu, 20–30% od losowego zapisanego stanu
+* TMInterface 2.2.1 to umożliwia (sprawdzone w API, jeszcze nie na żywo):
+    * w pluginie: `sim.SaveState()` → `SimulationState`, `sim.RewindToState(state)`; stan można zamienić na bajty (`ToArray()`) i odtworzyć z bajtów, więc pulę stanów startowych może trzymać Python
+    * bez zmian w pluginie: komendy konsoli `save_state plik.bin` / `load_state plik.bin` przez nasze `EXECUTE` (pliki w `Documents/TMInterface/States`)
+    * ograniczenie: nie da się zapisać ani wczytać stanu w czasie odliczania i po mecie
+
+**NEAT a ta architektura**:
+* wspólne: pula gier, pauzowanie, krok 50 ms, reset. scheduler może mieć jedną metodę `run_episodes(policies)` → dla każdej gry przejścia + suma nagród. NEAT bierze sumę jako fitness i wyrzuca przejścia, DQN wrzuca przejścia do bufora
+* różnica: w NEAT każda gra jedzie innym osobnikiem, w DQN wszystkie tą samą siecią
+* NEAT nie potrzebuje osobnego learnera: ewolucja potrzebuje fitness całej populacji naraz (bariera po generacji) i trwa milisekundy. ma sens tylko równoległa ocena: pula gier + kolejka osobników
+* losowe starty w NEAT: wszystkie osobniki w generacji muszą startować z tych samych miejsc, inaczej fitness jest nieporównywalny
+
+**na później**:
+* osobny proces learnera: gry ciągle jeżdżą (każda z lokalną kopią sieci) i wrzucają przejścia, learner ciągle trenuje, wagi trafiają do gier co przejazd. tak (z pamięci, niesprawdzone) robił Linesight. szybsze, ale bardziej skomplikowane
+* IQN: sieć przewiduje rozkład zwrotu (kwantyle) zamiast jednej liczby Q
