@@ -1,6 +1,8 @@
 # DQN (Deep Q-Network) dla TMNF
 
-źródło: Mnih i in., *Playing Atari with Deep Reinforcement Learning*, 2013, [arXiv:1312.5602](https://arxiv.org/abs/1312.5602)
+źródła:
+* Mnih i in., *Playing Atari with Deep Reinforcement Learning*, 2013, [arXiv:1312.5602](https://arxiv.org/abs/1312.5602)
+* Mnih i in., *Human-level control through deep reinforcement learning*, Nature 2015, [doi:10.1038/nature14236](https://doi.org/10.1038/nature14236) (sieć target)
 
 wzory są w blokach kodu (Unicode zamiast LaTeX-a), żeby czytały się w każdym podglądzie markdowna
 
@@ -45,10 +47,7 @@ teraz w kodzie: `OutputHandler0`, K = 6
 | 4 | gaz + prawo |
 | 5 | nic |
 
-* `OutputHandler0` robi `argmax` po wyjściach (pasuje do DQN), ale **siłę skrętu bierze z wartości wybranego wyjścia**. przy DQN wyjścia to wartości Q, a nie intensywności, więc pod DQN potrzebny jest osobny output handler: wejście = indeks akcji, skręt zawsze pełny
-* nie ma hamulca, choć gra go obsługuje (ujemna wartość w `SET_GAS`)
-
-plan: K = 9, gaz / nic / hamulec × lewo / prosto / prawo (szkic w `jatb/bot/actions.py`)
+* w grze znak gazu jest odwrotny (do przodu < 0, hamulec > 0), odwraca go `CommManager.send_gas`
 
 ---
 
@@ -114,8 +113,9 @@ y_j = r_j + γ · max_a' Q_θ⁻(s'_j, a')           wpp.
 
 ### 3.3 sieć target
 
-* hard update: co C update'ów kopiujemy całe wagi, `θ⁻ ← θ`
-* soft update: po każdym update'cie `θ⁻ ← τ·θ + (1 − τ)·θ⁻`, np. τ = 0.005
+* plan: najpierw zwykły DQN jak w 2013 (bez sieci target, cel liczony tą samą siecią, `θ⁻ = θ`), potem wersja z 2015 z siecią target i soft updatem
+* hard update (2015): co C update'ów kopiujemy całe wagi, `θ⁻ ← θ`
+* soft update (z DDPG, Lillicrap i in., 2015): po każdym update'cie `θ⁻ ← τ·θ + (1 − τ)·θ⁻`, np. τ = 0.005
 * oba działają, to tylko hiperparametr
 
 ### 3.4 replay buffer
@@ -137,25 +137,23 @@ podział ról:
 Game         jedna gra, jedno auto: reset, make_step(akcja) → (s', r, done)
 Scheduler    pula gier: puszcza politykę na wszystkich, oddaje przejścia (s, a, r, s', done)
 DQNTrainer   bierze przejścia od schedulera → replay buffer → update sieci
-DQNAgent     sieć Q: select_action(s) (ε-greedy) i update(batch)
+DQNAgent     sieć Q: policy(s) (ε-greedy) i update(batch)
 ```
 
 bufor i update siedzą w trenerze, a nie w schedulerze, żeby scheduler został wspólny z NEAT
 
 ### 4.1 pętla zbierania (scheduler, w każdej grze)
 
-gra jest wstrzymywana na czas decyzji, dzięki czemu decyzja liczy się na aktualnym stanie, a krok ma zawsze równo 50 ms czasu gry, niezależnie od tego, ile trwało liczenie
-
 ```
 s = reset()
 N razy (łącznie ze wszystkich gier):
-    a = select_action(s)                  # ε-greedy, gra stoi
-    s', r, done = make_step(a)            # 50 ms gry, potem pauza
+    a = policy(s)                         # ε-greedy
+    s', r, done = make_step(a)            # 50 ms gry (opcjonalnie potem pauza)
     zapisz (s, a, r, s', done)
     s = reset() jeśli koniec przejazdu, wpp. s'
 ```
 
-* stan dla polityki pochodzi z poprzedniego kroku: `make_step` wysyła akcję i od razu oddaje stan, który z niej wyszedł
+* stan dla polityki pochodzi z poprzedniego kroku: `make_step` wysyła akcję, czeka 50 ms czasu gry i oddaje stan, który z niej wyszedł
 * N to **suma kroków ze wszystkich gier** na jedną rundę. przy 4 grach i N = 200 każda gra robi 50 kroków (2,5 s jazdy)
 * runda nie kończy się razem z przejazdem: gry mogą być w połowie trasy, po update'ach jadą dalej już nową siecią
 
@@ -164,7 +162,7 @@ N razy (łącznie ze wszystkich gier):
 ```
 DQNTrainer.train():
     powtarzaj:
-        przejścia = scheduler.collect_steps(agent.select_action, N)   # jazda (4.1)
+        przejścia = scheduler.collect_steps(agent.policy, N)          # jazda (4.1)
         buffer.extend(przejścia)
         U razy: agent.update(buffer.sample(64))                       # nauka
 ```
@@ -173,7 +171,7 @@ DQNTrainer.train():
 * na początku warmup: nie uczymy, dopóki w buforze jest mniej przejść niż batch
 * U = liczba update'ów w jednej rundzie. każdy update to **osobny losowy batch** z całego bufora
 * update nie czeka na koniec przejazdu: sieć zmienia się co rundę, przejazdy toczą się dalej
-* wersja synchroniczna: najpierw jazda, potem nauka, gry stoją. najprostsza i poprawna, od niej zaczynamy
+* wersja synchroniczna: najpierw jazda, potem nauka. najprostsza i poprawna, od niej zaczynamy
 
 **replay ratio**, czyli ile razy (średnio) każde nowe przejście trafi do treningu, ważniejsze niż samo N:
 
@@ -203,7 +201,7 @@ replay ratio = U · B / N          B - rozmiar batcha (tu 64)
     * ograniczenie: nie da się zapisać ani wczytać stanu w czasie odliczania i po mecie
 
 **NEAT a ta architektura**:
-* wspólne: pula gier, pauzowanie, krok 50 ms, reset. scheduler może mieć jedną metodę `run_episodes(policies)` → dla każdej gry przejścia + suma nagród. NEAT bierze sumę jako fitness i wyrzuca przejścia, DQN wrzuca przejścia do bufora
+* wspólne: pula gier, krok 50 ms, reset. scheduler ma dwie metody: `run_episodes(policies)` → wynik każdego przejazdu (NEAT bierze fitness), `collect_steps(policy, N)` → przejścia (DQN wrzuca je do bufora)
 * różnica: w NEAT każda gra jedzie innym osobnikiem, w DQN wszystkie tą samą siecią
 * NEAT nie potrzebuje osobnego learnera: ewolucja potrzebuje fitness całej populacji naraz (bariera po generacji) i trwa milisekundy. ma sens tylko równoległa ocena: pula gier + kolejka osobników
 * losowe starty w NEAT: wszystkie osobniki w generacji muszą startować z tych samych miejsc, inaczej fitness jest nieporównywalny
