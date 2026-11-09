@@ -8,9 +8,15 @@ authors = [
     {name = "Stanisław Burdzicki"}
 ]
 readme = "README.md"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.11,<3.15"
 dependencies = [
-    "numpy (<2.5)"
+    "numpy (<2.5)",
+    "torch (==2.14.0)",
+    # Pins required by torch 2.14.0+cu132 (via cuda-toolkit[cublas,nvrtc]==13.2.1). Poetry
+    # loses them because they sit behind an "extra" marker, and then installs newer
+    # versions for nvidia-cudnn-cu13. Update these together with torch.
+    "nvidia-cublas (==13.4.0.1) ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "nvidia-cuda-nvrtc (==13.2.78) ; sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
 [project.scripts]
@@ -25,4 +31,22 @@ build-backend = "poetry.core.masonry.api"
 packages = [
     { include = "jatb" },
     { include = "scripts" }
+]
+
+# PyPI declared by name so that torch can reference it below (source = "PyPI").
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+# "explicit" means only packages that name this source are taken from it.
+[[tool.poetry.source]]
+name = "pytorch-cu132"
+url = "https://download.pytorch.org/whl/cu132"
+priority = "explicit"
+
+# CUDA 13.2 build of torch on Linux/Windows x86_64; plain PyPI build on macOS (no CUDA there).
+[tool.poetry.dependencies]
+torch = [
+    { source = "pytorch-cu132", markers = "(sys_platform == 'linux' and platform_machine == 'x86_64') or (sys_platform == 'win32' and platform_machine == 'AMD64')" },
+    { source = "PyPI", markers = "sys_platform == 'darwin'" },
 ]

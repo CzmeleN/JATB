@@ -22,10 +22,10 @@ Just Another Trackmania Bot - a project for Game Botting UWr Class
 
 ## Repo Setup
 
-The project uses Poetry 2.x (2.1 or newer) and requires **Python 3.11 or 3.12**.
+The project uses Poetry 2.x (2.1 or newer) and requires **Python 3.11 – 3.14** (3.12 recommended).
 The virtual environment is created in `./.venv` (see `poetry.toml`) and is not committed.
 
-### Option A: you already have Python 3.11/3.12
+### Option A: you already have Python 3.11 – 3.14
 
 ```
 poetry env use 3.12        # or 3.11, or a full path to the interpreter, e.g. ~/miniconda3/envs/ml/bin/python
@@ -41,7 +41,24 @@ Install one first, then proceed as in option A. You can do it with conda:
   poetry install
   ```
 
-Check with `poetry env info` (should show Python 3.12 and the `.venv` path).
+Check with `poetry env info` (should show your Python version and the `.venv` path).
+
+### PyTorch
+
+`poetry install` also installs **torch 2.14.0**, from a different source depending on the platform (see `[tool.poetry.dependencies]` in `pyproject.toml`):
+
+- **Linux / Windows x86_64**: the CUDA 13.2 build (`2.14.0+cu132`) from `https://download.pytorch.org/whl/cu132`.
+  You need an NVIDIA driver that supports CUDA 13 (R580 or newer). Without a GPU it still works, on the CPU.
+  The first install downloads about 5 GB (torch, the NVIDIA libraries and triton).
+- **macOS**: the regular PyPI build (CPU / MPS).
+
+Check that it works:
+```
+poetry run python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+```
+
+When upgrading torch, also update the `nvidia-cublas` and `nvidia-cuda-nvrtc` pins in `pyproject.toml`
+(they must match the `cuda-toolkit` version that the new torch requires), then run `poetry lock`.
 
 ### Using the environment
 

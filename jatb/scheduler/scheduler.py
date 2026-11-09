@@ -1,16 +1,13 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
-
 from jatb.policy import IPolicy
 
-
 @dataclass
-class EpisodeResult:
-    policy_index: int
-    fitness: float
+class GameResult:
     total_reward: float
     steps: int
+    finished: bool
 
 @dataclass
 class Transition:
@@ -18,16 +15,17 @@ class Transition:
     action: int
     reward: float
     next_state: list[float]
+    finished: bool
     done: bool
 
 
 class IScheduler(ABC):
     @abstractmethod
-    def run_episodes(self, policies: Sequence[IPolicy]) -> list[EpisodeResult]: ...
+    def run_games(self, policies: Sequence[IPolicy]) -> Sequence[GameResult]: ...
 
     @abstractmethod
     def collect_steps(
         self,
-        action_selector: Callable[[list[float]], int],
+        policy: IPolicy,
         num_steps: int,
     ) -> list[Transition]: ...
