@@ -27,8 +27,8 @@ class NeatPolicy(IPolicy):
     @staticmethod
     def __create_graph(genome: Genome) -> dict[int, list[int]]:
         """ from -> [to] if from -> to is enabled"""
-        G: dict[int, list[int]] = {node_id: [] for node_id in genome.nodes}
-        for connection in genome.connections.values(): 
+        G: dict[int, list[int]] = {node_id: [] for node_id in genome.node_gene_by_node_id}
+        for connection in genome.connection_by_innovation_id.values(): 
             if connection.enabled:
                 G[connection.in_node].append(connection.out_node)
                 
@@ -38,8 +38,8 @@ class NeatPolicy(IPolicy):
     def __create_inverted_graph(genome: Genome) -> dict[int, list[tuple[int, float]]]:
         """ to -> [(from, val)], only if from -> to enabled """
         
-        G_inverted: dict[int, list[tuple[int, float]]] = {node_id: [] for node_id in genome.nodes}
-        for connection in genome.connections.values():
+        G_inverted: dict[int, list[tuple[int, float]]] = {node_id: [] for node_id in genome.node_gene_by_node_id}
+        for connection in genome.connection_by_innovation_id.values():
             if connection.enabled:
                 G_inverted[connection.out_node].append((connection.in_node, connection.weight))
                 
