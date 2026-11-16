@@ -41,3 +41,9 @@ class IScheduler(ABC):
         policy: IPolicy,
         num_steps: int,
     ) -> list[Transition]: ...
+    
+    @abstractmethod
+    def get_input_size(self) -> int: ... 
+    
+    @abstractmethod
+    def get_output_size(self) -> int: ...
