@@ -10,6 +10,7 @@ class InnovationTracker:
         self._next_node_id += 1
         return node_id
 
+# innovation methods
     def create_innovation(self, in_node: int, out_node: int) -> int:
         key = (in_node, out_node)
         assert key not in self._innovation_by_node_pair, f"Error: innovation {key} already exists"
@@ -22,7 +23,15 @@ class InnovationTracker:
         key = (in_node, out_node)
         assert key in self._innovation_by_node_pair, f"Error: no innovation for {key}"
         return self._innovation_by_node_pair[key]
-
+    
+    def get_or_create_innovation(self, in_node: int, out_node: int) -> int: 
+        key = (in_node, out_node)
+        if key in self._innovation_by_node_pair:
+            return self.get_innovation(*key)
+        else:
+            return self.create_innovation(*key) 
+        
+# split methods
     def create_split_node_id(self, split_innovation: int) -> int:
         assert split_innovation not in self._node_id_by_split_innovation, f"Error: connection {split_innovation} was already split"
 
@@ -33,6 +42,13 @@ class InnovationTracker:
         assert split_innovation in self._node_id_by_split_innovation, f"Error: connection {split_innovation} was never split"
         return self._node_id_by_split_innovation[split_innovation]
     
+    def get_or_create_split_node_id(self, split_innovation: int) -> int:
+        if split_innovation in self._node_id_by_split_innovation:
+            return self.get_split_node_id(split_innovation)
+        else:
+            return self.create_split_node_id(split_innovation)
+
+# saving / loading methods 
     def to_dict(self) -> dict:
         return {
             "next_innovation_id": self._next_innovation_id,
