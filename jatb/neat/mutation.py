@@ -2,6 +2,7 @@ import random
 from dataclasses import dataclass
 from .genome import ConnectionGene, Genome, NodeGene, NodeType
 from .innovation_tracker import InnovationTracker
+from .utils import edge_creates_cycle
 
 @dataclass(frozen=True)
 class MutationConfig:
@@ -23,10 +24,10 @@ class Mutator:
     def __init__(self, 
                  tracker: InnovationTracker, 
                  config: MutationConfig = MutationConfig(),
-                 rng: random.Random = random.Random()):
+                 rng: random.Random | None = None):
         self.tracker: InnovationTracker = tracker 
         self.config: MutationConfig = config 
-        self.rng: random.Random = rng
+        self.rng: random.Random = rng if rng is not None else random.Random()
     
     def mutate_genome_inplace(self, genome: Genome) -> None:
         if self.rng.random() < self.config.weight_mutate_prob:
@@ -49,7 +50,7 @@ class Mutator:
                 continue
             if edge in existing_edges:
                 continue
-            if self._edge_creates_cycle(genome, edge):
+            if edge_creates_cycle(genome, edge):
                 continue 
             
             genome.add_connection(ConnectionGene(
@@ -59,6 +60,8 @@ class Mutator:
                 enabled=True,
                 innovation=self.tracker.get_or_create_innovation(*edge),
             ))
+            
+            break
 
     def _mutate_add_node_inplace(self, genome: Genome) -> None: 
         candidates = [c for c in genome.connection_by_innovation_id.values() if c.enabled]
@@ -86,6 +89,8 @@ class Mutator:
                 enabled=True, 
                 innovation=self.tracker.get_or_create_innovation(node_id, connection.out_node)
             ))
+            
+            break
     
     def _mutate_weights_inplace(self, genome: Genome) -> None: 
         for connection in genome.connection_by_innovation_id.values():
@@ -94,25 +99,4 @@ class Mutator:
             else: 
                 connection.weight = self.rng.uniform(-self.config.weight_init_range, self.config.weight_init_range)
                 
-            connection.weight = max(-self.config.weight_clamp, min(self.config.weight_clamp, connection.weight))
-
-    @staticmethod
-    def _edge_creates_cycle(genome: Genome, edge: tuple[int, int]) -> bool:
-        in_node, out_node = edge
-        G_inverted: dict[int, list[int]] = {}
-        for c in genome.connection_by_innovation_id.values():
-            G_inverted.setdefault(c.in_node, []).append(c.out_node)
-            
-        stack, seen = [out_node], {out_node}
-        while stack:
-            node = stack.pop() 
-            if node == in_node:
-                return True 
-            
-            for child in G_inverted.get(node, []):
-                if child not in seen:
-                    seen.add(child)
-                    stack.append(child)
-                    
-        return False
-                    
+            connection.weight = max(-self.config.weight_clamp, min(self.config.weight_clamp, connection.weight)) 
