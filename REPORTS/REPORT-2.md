@@ -11,7 +11,6 @@
 ## Źródła wiedzy
 
 - [Notatki o NEAT](/REPORTS/NEAT.md)
-- [Notatki o DQN](/REPORTS/DQN.md)
 
 ## Plany na przyszłość
 
