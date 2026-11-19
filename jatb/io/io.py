@@ -38,6 +38,12 @@ class Io:
 
     def get_input(self, game_state: GameState) -> list[float]:
         return self._input_handler.get_input(game_state)
+    
+    def get_input_size(self) -> int:
+        return self._input_handler.get_input_size()
+
+    def get_output_size(self) -> int: 
+        return self._output_handler.get_output_size()
 
     def __update_inplace_game_state_based_on_input_handler(self, game_state: GameState) -> None:
         frame: RecvFrame = self._comm_manager.get_latest_frame()
