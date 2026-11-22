@@ -6,7 +6,7 @@ from .utils import edge_creates_cycle
 @dataclass(frozen=True)
 class CrossoverConfig:
     disable_gene_prob: float = 0.75 
-    prob_to_inherit_disjoint_or_excess_gene_in_case_same_parents_fitness: float = 0.5
+    non_matching_gene_inherit_prob_on_tie: float = 0.5
     
 class Crossover:
     def __init__(self,
@@ -41,7 +41,7 @@ class Crossover:
         genes_only_in_one.sort(key=lambda gene: gene.innovation)
         
         for gene in genes_only_in_one:
-            if self.rng.random() >= self.config.prob_to_inherit_disjoint_or_excess_gene_in_case_same_parents_fitness:
+            if self.rng.random() >= self.config.non_matching_gene_inherit_prob_on_tie:
                 continue
             if edge_creates_cycle(self.child, (gene.in_node, gene.out_node)):
                 continue
@@ -55,7 +55,7 @@ class Crossover:
             self._inherit_gene(chosen, is_disabled_in_parent)
             
     def _inherit_gene(self, gene: ConnectionGene, is_disabled_in_parent: bool,) -> None:
-        self._add_missing_nodes_required_to_add_connection_gene(gene)
+        self._add_missing_nodes_required_to_create_connection(gene)
         self.child.add_connection(ConnectionGene(
             in_node=gene.in_node,
             out_node=gene.out_node,
@@ -64,7 +64,7 @@ class Crossover:
             innovation=gene.innovation,
         ))
         
-    def _add_missing_nodes_required_to_add_connection_gene(self, gene: ConnectionGene) -> None:
+    def _add_missing_nodes_required_to_create_connection(self, gene: ConnectionGene) -> None:
         for node_id in (gene.in_node, gene.out_node):
             if node_id in self.child.node_gene_by_node_id:
                 continue

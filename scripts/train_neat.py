@@ -12,7 +12,7 @@ from jatb.scheduler import IScheduler # TODO potem sie zamieni na concrete sched
 
 DEFAULT_PORT = 8450
 
-def env_handler() -> tuple[str, int, int, bool, str]:
+def args_handler() -> tuple[str, int, int, bool, str]:
     if len(sys.argv) < 3:
         sys.exit(__doc__)
     save_path = sys.argv[1]
@@ -22,7 +22,7 @@ def env_handler() -> tuple[str, int, int, bool, str]:
     return save_path, epochs, port, bool(load_path), load_path
 
 if __name__ == "__main__":
-    save_path, epochs, port, continue_training, load_path = env_handler()
+    save_path, epochs, port, continue_training, load_path = args_handler()
     
     scheduler: IScheduler = IScheduler() # TODO podmiana na concrete scheduler 
     trainer: NeatTrainer = NeatTrainer(scheduler, epochs, save_path, continue_training, load_path)
