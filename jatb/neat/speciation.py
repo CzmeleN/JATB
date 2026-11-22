@@ -108,10 +108,10 @@ class Speciation:
     
     def _adjust_threshold(self) -> None: 
         if len(self.all_species) > self.config.target_species_count:
-            self.compatibility_threshold += self.config.threshold_step
+            self._compatibility_threshold += self.config.threshold_step
         elif len(self.all_species) < self.config.target_species_count:
-            self.compatibility_threshold = max(self.config.min_threshold, 
-                                                      self.compatibility_threshold - self.config.threshold_step)
+            self._compatibility_threshold = max(self.config.min_threshold, 
+                                                      self._compatibility_threshold - self.config.threshold_step)
     
     def _distance(self, genome_a: Genome, genome_b: Genome) -> float:
         genes_a = genome_a.connection_by_innovation_id
@@ -143,6 +143,6 @@ class Speciation:
     
     def _try_find_species(self, genome: Genome) -> Species | None: 
         for species in self.all_species:
-            if self._distance(genome, species.representative) < self.compatibility_threshold:
+            if self._distance(genome, species.representative) < self._compatibility_threshold:
                 return species
         return None

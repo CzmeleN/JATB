@@ -1,8 +1,8 @@
+import math
 import json
 import os
 import random
-
-from jatb.neat import ConnectionGene, Genome, InnovationTracker, NodeGene, NodeType, Speciation, Species
+from jatb.neat import ConnectionGene, Genome, InnovationTracker, NodeGene, NodeType, Speciation, Reproducer
 from jatb.scheduler import IScheduler, GameResult
 from .Itrainer import ITrainer
 from tqdm import tqdm
@@ -15,6 +15,8 @@ class NeatTrainer(ITrainer):
             "population_size": self.population_size,
             "tracker": self.tracker.to_dict(),
             "genomes": [genome.to_dict() for genome in self.genomes],
+            "best_fitness": self.best_fitness,
+            "opt_best_genome": self.opt_best_genome.to_dict() if self.opt_best_genome is not None else None,
         }
         with open(self.save_path, "w") as f:
             json.dump(data, f)
@@ -29,6 +31,9 @@ class NeatTrainer(ITrainer):
         self.population_size = data["population_size"]
         self.tracker = InnovationTracker.from_dict(data["tracker"])
         self.genomes = [Genome.from_dict(genome) for genome in data["genomes"]]
+        self.best_fitness = data["best_fitness"]
+        best_genome = data["opt_best_genome"]
+        self.opt_best_genome = Genome.from_dict(best_genome) if best_genome is not None else None
         self._restore_node_ids()
 
     def _restore_node_ids(self) -> None:
@@ -40,7 +45,7 @@ class NeatTrainer(ITrainer):
         self.source_ids = self.input_ids + [self.bias_id]
     
     def _create_policies(self) -> Sequence[NeatPolicy]:
-        pass
+        return [NeatPolicy(genome, self.input_ids, self.bias_id, self.output_ids) for genome in self.genomes]
     
     def _create_initial_genome(self, nodes: list[NodeGene]) -> Genome:
         genome = Genome()
@@ -85,9 +90,12 @@ class NeatTrainer(ITrainer):
             self.population_size: int = 150
             self.tracker: InnovationTracker = InnovationTracker()
             self.genomes = self._create_initial_genomes(self.scheduler.get_input_size(), self.scheduler.get_output_size())
-            
-    def _reproduce(self, all_species: list[Species], offspring_count: dict[int, int], fitnesses: list[float]) -> list[Genome]:
-        pass
+    
+    def _remember_best(self, fitnesses: list[float]) -> None:
+        best_id = max(range(len(fitnesses)), key=lambda i: fitnesses[i])
+        if fitnesses[best_id] > self.best_fitness:
+            self.best_fitness = fitnesses[best_id]
+            self.opt_best_genome = self.genomes[best_id].copy()
     
     def __init__(self,
                  scheduler: IScheduler,
@@ -99,18 +107,23 @@ class NeatTrainer(ITrainer):
         super().__init__(scheduler)
         self.epochs: int = epochs 
         self.save_path: str = save_path
+        self.opt_best_genome: Genome | None = None 
+        self.best_fitness: float = -math.inf
         self._load_genomes(continue_training, load_path)
+        
         self.speciation = Speciation()
+        self.reproducer = Reproducer(self.tracker)
     
     def train(self) -> None:
         for epoch in tqdm(range(self.epochs)):
             results: Sequence[GameResult] = self.scheduler.run_games(self._create_policies())
             fitnesses = [r.total_reward for r in results]
+            self._remember_best(fitnesses) 
             
-            all_species, offsprint_count = self.speciation(self.genomes, fitnesses, self.population_size)
+            all_species, offspring_count = self.speciation(self.genomes, fitnesses, self.population_size)
             tqdm.write(f"epoch {epoch}: best {max(fitnesses):.2f}, mean {sum(fitnesses) / len(fitnesses):.2f}, "
                        f"species {len(all_species)}")
             
-            self.genomes = self._reproduce(all_species, offspring_count, fitnesses)
+            self.genomes = self.reproducer(self.genomes, all_species, offspring_count, fitnesses, self.population_size)
             self._save_training()
             
