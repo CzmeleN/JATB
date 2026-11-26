@@ -1,3 +1,5 @@
-from .Ischeduler import GameResult, IScheduler, Transition
+from .results import GameResult, Transition
+from .Ischeduler import IScheduler
+from .scheduler import Scheduler
 
-__all__ = ["GameResult", "IScheduler", "Transition"]
+__all__ = ["GameResult", "IScheduler", "Scheduler", "Transition"]

@@ -32,6 +32,7 @@ class Io:
 
     def restart(self) -> None:
         self._comm_manager.send_restart()
+        self._comm_manager.wait_for_frame(lambda f: f.race_time <= 0)
 
     def send_output_to_the_game(self, policy_output: list[float]) -> None:
         self._output_handler.send_output_to_the_game(policy_output, self._comm_manager)
@@ -42,8 +43,16 @@ class Io:
     def get_input_size(self) -> int:
         return self._input_handler.get_input_size()
 
-    def get_output_size(self) -> int: 
+    def get_output_size(self) -> int:
         return self._output_handler.get_output_size()
+
+    def get_race_time(self) -> int:
+        return self._race_time
+
+    def wait_for_start(self, timeout: float = 60.0) -> None:
+        self._comm_manager.wait_for_frame(lambda f: f.race_time < 0, timeout)
+        frame = self._comm_manager.wait_for_frame(lambda f: f.race_time >= 0, 10)
+        self._race_time = frame.race_time
 
     def __update_inplace_game_state_based_on_input_handler(self, game_state: GameState) -> None:
         frame: RecvFrame = self._comm_manager.get_latest_frame()
@@ -62,7 +71,10 @@ class Io:
         # for now we don't use any data from map_data_provider
         pass
 
-    def get_game_state(self) -> GameState:
+    def get_game_state(self, delta_time: int) -> GameState:
+        target = self._race_time + delta_time
+        frame = self._comm_manager.wait_for_frame(lambda f: f.race_time >= target, timeout=2)
+        self._race_time = frame.race_time
         game_state: GameState = GameState()
         self.__update_inplace_game_state_based_on_input_handler(game_state)
         self.__update_inplace_game_state_based_on_map_data_provider(game_state)

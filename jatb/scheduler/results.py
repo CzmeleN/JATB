@@ -1,0 +1,30 @@
+from dataclasses import dataclass
+
+
+@dataclass
+class GameResult:
+    """ 
+        general result type
+        alone is enough for NEAT
+        steps and finished are mostly for debug info 
+        finished is true if bot has reached end line
+    """
+    
+    total_reward: float
+    steps: int 
+    finished: bool
+
+@dataclass
+class Transition:
+    """ 
+        use for DQN
+        finished is true if bot has reached end line
+    """
+    
+    state: list[float] # TODO we could add later Istate related to output_handel
+    action: int
+    reward: float
+    next_state: list[float]
+    finished: bool
+    done: bool
+

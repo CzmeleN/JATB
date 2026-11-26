@@ -3,9 +3,11 @@ from jatb.game.reward_function.IReward_function import IRewardFunction
 from jatb.trackmania_interface.game_state import GameState
 from jatb.io import IOutputHandler, IInputHandler, Io
 from pathlib import Path
-import os
+import os, signal
 import subprocess
 
+# TODO read from the settings or stay with the lowest possible?
+VIRTUAL_DESKTOP_SIZE: str = "640x480"
 SIMULATION_ONE_STEP_TIME_MS: int = 50
 TMLOADER_PATH: Path = Path("~/tmnf/TMLoader/TMLoader.exe").expanduser()
 
@@ -46,12 +48,16 @@ class Game:
 
     def reset(self) -> None:
         self.io.restart()
+        self.io.wait_for_start()
+        self.current_race_time_ms = 0
+        self.prev_game_state = GameState()
+        self.is_finished = False
 
     def make_step(self, policy_output: list[float]) -> StepResult:
         self.io.send_output_to_the_game(policy_output)
 
-        new_state: GameState = self.io.get_game_state()
-
+        new_state: GameState = self.io.get_game_state(SIMULATION_ONE_STEP_TIME_MS)
+        self.current_race_time_ms = self.io.get_race_time()
         last_step_observation: list[float] = self.io.get_input(new_state)
         reward = self.reward_function.compute(self.prev_game_state, new_state)
         self.is_finished = new_state.get_is_finished() or self.current_race_time_ms > self.max_race_time_ms
@@ -70,7 +76,12 @@ class Game:
         if self.show_dxvk_hud:
             env["DXVK_HUD"] = "version,fps"
 
-        cmd = ["wine", str(TMLOADER_PATH), "run", "TmForever", "default",
+        # Need to use the Wine's virtual desktop, as launching 4 instances on one made them
+        # fight for focus and sometimes unable to process input on Hyprland
+        # cmd = ["wine", str(TMLOADER_PATH), "run", "TmForever", "default",
+        #        f"/configstring=set autologin {self.autologin}; set jatb_port {self.port}"]
+        cmd = ["wine", "explorer", f"/desktop=jatb{self.port},{VIRTUAL_DESKTOP_SIZE}",
+               str(TMLOADER_PATH), "run", "TmForever", "default",
                f"/configstring=set autologin {self.autologin}; set jatb_port {self.port}"]
 
         self._tm_process = subprocess.Popen(
@@ -82,9 +93,17 @@ class Game:
             start_new_session=True
         )
 
-    def __delete__(self):
+    def close(self) -> None:
         if self._tm_process is None:
             return
+        try:
+            os.killpg(self._tm_process.pid, signal.SIGTERM)
+            self._tm_process.wait(timeout=10)
+        except ProcessLookupError:
+            pass
+        except subprocess.TimeoutExpired:
+            os.killpg(self._tm_process.pid, signal.SIGKILL)
+        self._tm_process = None
 
     def launch(self) -> None:
         """ you need to invoke the function before using the class"""
